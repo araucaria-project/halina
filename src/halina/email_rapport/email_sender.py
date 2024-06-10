@@ -32,26 +32,13 @@ class EmailSender:
             await smtp.send_message(message)
             await smtp.quit()
             logger.info(f"Email sent successfully to {self.to_email}")
-            return f"Email sent successfully to {self.to_email}"
+            return True
         except SMTPException as e:
             logger.error(f"Failed to send email due to SMTP error: {str(e)}")
-            return f"Failed to send email due to SMTP error: {str(e)}"
+            return False
         except asyncio.TimeoutError:
             logger.error("Failed to send email due to a timeout error")
-            return "Failed to send email due to a timeout error"
+            return False
         except Exception as e:
             logger.error(f"An unexpected error occurred: {str(e)}")
-            return f"An unexpected error occurred: {str(e)}"
-
-
-async def main():
-    email_sender = EmailSender(
-        to_email="d.chmalu@gmail.com",
-        subject="Test Email",
-        content="Testowy mail do wysyłania raportów z obserwatorium"
-    )
-    result = await email_sender.send()
-    print(result)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+            return False
