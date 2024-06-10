@@ -42,3 +42,4 @@ class EmailSender:
         except Exception as e:
             logger.error(f"An unexpected error occurred: {str(e)}")
             return False
+
