@@ -24,16 +24,16 @@ class EmailSender:
         self.image_path = image_path
 
     async def send(self):
-        content = generate_email_content(self.template_name, self.context)
+        message = generate_email_content(
+            from_email=self.FROM_EMAIL,
+            to_email=self.to_email,
+            subject=self.subject,
+            template_name=self.template_name,
+            context=self.context,
+            image_path=self.image_path
+        )
 
-        # Create a MIMEMultipart message
-        message = MIMEMultipart("related")
-        message["From"] = self.FROM_EMAIL
-        message["To"] = self.to_email
-        message["Subject"] = self.subject
-
-        # Attach the HTML content
-        message.attach(MIMEText(content, "html"))
+        smtp = SMTP(hostname=self.SMTP_HOST, port=self.SMTP_PORT, start_tls=True)
 
         if self.image_path:
             with open(self.image_path, 'rb') as img:
@@ -46,11 +46,11 @@ class EmailSender:
         smtp = SMTP(hostname=self.SMTP_HOST, port=self.SMTP_PORT, start_tls=True)
 
         try:
-            await smtp.connect()
-            await smtp.login(self.FROM_EMAIL, self.EMAIL_APP_PASSWORD)
-            await smtp.send_message(message)
-            logger.info(f"Email sent successfully to {self.to_email}")
-            return True
+            async with smtp:
+                await smtp.login(self.FROM_EMAIL, self.EMAIL_APP_PASSWORD)
+                await smtp.send_message(message)
+                logger.info(f"Email sent successfully to {self.to_email}")
+                return True
         except SMTPException as e:
             logger.error(f"Failed to send email due to SMTP error: {str(e)}")
             return False
@@ -60,8 +60,3 @@ class EmailSender:
         except Exception as e:
             logger.error(f"An unexpected error occurred: {str(e)}")
             return False
-        finally:
-            try:
-                await smtp.quit()
-            except Exception as e:
-                logger.error(f"Failed to close SMTP connection: {str(e)}")
