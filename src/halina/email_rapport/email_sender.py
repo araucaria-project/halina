@@ -1,7 +1,11 @@
 import asyncio
 import logging
-from email.message import EmailMessage
 from aiosmtplib import SMTP, SMTPException
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from .email_builder import generate_email_content
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
@@ -12,17 +16,32 @@ class EmailSender:
     SMTP_HOST = 'smtp.gmail.com'
     SMTP_PORT = 587
 
-    def __init__(self, to_email, subject, content):
+    def __init__(self, to_email, subject, template_name, context, image_path=None):
         self.to_email = to_email
         self.subject = subject
-        self.content = content
+        self.template_name = template_name
+        self.context = context
+        self.image_path = image_path
 
     async def send(self):
-        message = EmailMessage()
+        content = generate_email_content(self.template_name, self.context)
+
+        # Create a MIMEMultipart message
+        message = MIMEMultipart("related")
         message["From"] = self.FROM_EMAIL
         message["To"] = self.to_email
         message["Subject"] = self.subject
-        message.set_content(self.content)
+
+        # Attach the HTML content
+        message.attach(MIMEText(content, "html"))
+
+        if self.image_path:
+            with open(self.image_path, 'rb') as img:
+                img_data = img.read()
+            image = MIMEImage(img_data)
+            image.add_header('Content-ID', '<image1>')
+            image.add_header('Content-Disposition', 'inline', filename='image1.png')
+            message.attach(image)
 
         smtp = SMTP(hostname=self.SMTP_HOST, port=self.SMTP_PORT, start_tls=True)
 
@@ -30,7 +49,6 @@ class EmailSender:
             await smtp.connect()
             await smtp.login(self.FROM_EMAIL, self.EMAIL_APP_PASSWORD)
             await smtp.send_message(message)
-            await smtp.quit()
             logger.info(f"Email sent successfully to {self.to_email}")
             return True
         except SMTPException as e:
@@ -42,3 +60,8 @@ class EmailSender:
         except Exception as e:
             logger.error(f"An unexpected error occurred: {str(e)}")
             return False
+        finally:
+            try:
+                await smtp.quit()
+            except Exception as e:
+                logger.error(f"Failed to close SMTP connection: {str(e)}")
