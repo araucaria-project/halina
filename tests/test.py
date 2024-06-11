@@ -1,5 +1,5 @@
 import asyncio
-from email_rapport.email_sender import EmailSender
+from halina.email_rapport.email_sender import EmailSender
 
 
 async def main():
