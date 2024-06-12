@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ subject }}</title>
+</head>
+<body>
+    <h1>{{ subject }}</h1>
+    <p>Night: {{ night }}</p>
+    <p>Total number of FITS saved: {{ total_fits }}</p>
+    <p>zb08: {{ zb08 }}</p>
+    <p>jk15: {{ jk15 }}</p>
+    <table>
+        {% for row in table_data %}
+        <tr>
+            {% for item in row %}
+            <td>{{ item }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+    <img src="cid:image1" alt="Image">
+</body>
+</html>

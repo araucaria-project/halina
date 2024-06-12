@@ -4,6 +4,7 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import os
+import aiofiles
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
@@ -11,9 +12,12 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 class EmailBuilder:
     def __init__(self):
         self._subject = None
-        self._template_name = None
-        self._context = None
-        self._image_path = None
+        self._night = None
+        self._total_fits = None
+        self._zb08 = None
+        self._jk15 = None
+        self._table_data = None
+        self._image_path = "src/halina/email_rapport/resources/zdjecie.png"
 
     def set_subject(self, subject):
         self._subject = subject
@@ -22,46 +26,66 @@ class EmailBuilder:
         self.set_subject(subject)
         return self
 
-    def set_template_name(self, template_name):
-        self._template_name = template_name
+    def set_night(self, night):
+        self._night = night
 
-    def template_name(self, template_name):
-        self.set_template_name(template_name)
+    def night(self, night):
+        self.set_night(night)
         return self
 
-    def set_context(self, context):
-        self._context = context
+    def set_total_fits(self, total_fits):
+        self._total_fits = total_fits
 
-    def context(self, context):
-        self.set_context(context)
+    def total_fits(self, total_fits):
+        self.set_total_fits(total_fits)
         return self
 
-    def set_image_path(self, image_path):
-        self._image_path = image_path
+    def set_zb08(self, zb08):
+        self._zb08 = zb08
 
-    def image_path(self, image_path):
-        self.set_image_path(image_path)
+    def zb08(self, zb08):
+        self.set_zb08(zb08)
+        return self
+
+    def set_jk15(self, jk15):
+        self._jk15 = jk15
+
+    def jk15(self, jk15):
+        self.set_jk15(jk15)
+        return self
+
+    def set_table_data(self, table_data):
+        self._table_data = table_data
+
+    def table_data(self, table_data):
+        self.set_table_data(table_data)
         return self
 
     async def build(self) -> MIMEMultipart:
         env = Environment(loader=FileSystemLoader(os.path.dirname(__file__)))
-        template = env.get_template(self._template_name)
-        content = template.render(self._context)
+        template = env.get_template("resources/email_template.html")
+        context = {
+            'night': self._night,
+            'total_fits': self._total_fits,
+            'zb08': self._zb08,
+            'jk15': self._jk15,
+            'table_data': self._table_data
+        }
+        content = template.render(context)
 
-        # Create a MIMEMultipart message
+        # Create message
         message = MIMEMultipart("related")
 
         message["Subject"] = self._subject
 
-        # Attach the HTML content
+        # Attach HTML
         message.attach(MIMEText(content, "html"))
 
-        if self._image_path:
-            with open(self._image_path, 'rb') as img:
-                img_data = img.read()
-            image = MIMEImage(img_data)
-            image.add_header('Content-ID', '<image1>')
-            image.add_header('Content-Disposition', 'inline', filename='image1.png')
-            message.attach(image)
+        async with aiofiles.open(self._image_path, 'rb') as img:
+            img_data = await img.read()
+        image = MIMEImage(img_data)
+        image.add_header('Content-ID', '<image1>')
+        image.add_header('Content-Disposition', 'inline', filename="zdjecie.png")
+        message.attach(image)
 
         return message
