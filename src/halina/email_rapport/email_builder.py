@@ -1,34 +1,56 @@
 import logging
 from jinja2 import Environment, FileSystemLoader
-import os
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import os
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 class EmailBuilder:
-    def __init__(self, from_email, to_email, subject, template_name, context, image_path=None):
-        self._from_email = from_email
-        self._to_email = to_email
+    def __init__(self):
+        self._subject = None
+        self._template_name = None
+        self._context = None
+        self._image_path = None
+
+    def set_subject(self, subject):
         self._subject = subject
+
+    def subject(self, subject):
+        self.set_subject(subject)
+        return self
+
+    def set_template_name(self, template_name):
         self._template_name = template_name
+
+    def template_name(self, template_name):
+        self.set_template_name(template_name)
+        return self
+
+    def set_context(self, context):
         self._context = context
+
+    def context(self, context):
+        self.set_context(context)
+        return self
+
+    def set_image_path(self, image_path):
         self._image_path = image_path
 
-    async def build(self) -> MIMEMultipart:
-        if not all([self._from_email, self._to_email, self._subject, self._template_name, self._context]):
-            raise ValueError("All email parameters must be set before building the email")
+    def image_path(self, image_path):
+        self.set_image_path(image_path)
+        return self
 
+    async def build(self) -> MIMEMultipart:
         env = Environment(loader=FileSystemLoader(os.path.dirname(__file__)))
         template = env.get_template(self._template_name)
         content = template.render(self._context)
 
         # Create a MIMEMultipart message
         message = MIMEMultipart("related")
-        message["From"] = self._from_email
-        message["To"] = self._to_email
+
         message["Subject"] = self._subject
 
         # Attach the HTML content
