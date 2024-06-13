@@ -13,10 +13,6 @@ class DataPublisher:
             data = await file.read()
             return json.loads(data)
 
-    async def write_json(self, file_path, data):
-        async with aiofiles.open(file_path, 'w') as file:
-            await file.write(json.dumps(data, indent=4))
-
     def generate_random_values(self, num_copies):
         random_values = []
         for i in range(num_copies):
