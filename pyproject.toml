@@ -17,5 +17,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-services = "src.halina.main:main"
-simulator = "src.simulator.main:main"
+simulator = "simulator.main:run"

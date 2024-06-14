@@ -1,27 +1,48 @@
 import asyncio
-import json
 from .data_publisher import DataPublisher
+import argparse
 
-async def main():
-    raw_input_file_path = 'src/simulator/raw.json'
-    zdf_input_file_path = 'src/simulator/zdf.json'
-    num_copies = 10
 
-    data_publisher = DataPublisher()
+async def main(num_copies, host, port, telescopes):
+    data_publisher = DataPublisher(telescopes)
 
-    raw_original_data = await data_publisher.read_json(raw_input_file_path)
-    zdf_original_data = await data_publisher.read_json(zdf_input_file_path)
+    raw_original_data = await data_publisher.read_json('raw')
+    zdf_original_data = await data_publisher.read_json('zdf')
 
-    random_values = data_publisher.generate_random_values(num_copies)
-    raw_copies = data_publisher.create_copies(raw_original_data, random_values)
-    zdf_copies = data_publisher.create_zdf_copies(zdf_original_data, random_values)
+    all_raw_copies = []
+    all_zdf_copies = []
 
-    for raw, zdf in zip(raw_copies, zdf_copies):
-        raw_data = json.dumps(raw)
-        await data_publisher.publish_data("tic.status.testtel.fits.pipeline.raw", raw_data)
+    for telescope in telescopes:
+        random_values = data_publisher.generate_random_values(num_copies, telescope)
+        raw_copies = data_publisher.create_copies(raw_original_data, random_values)
+        zdf_copies = data_publisher.create_zdf_copies(zdf_original_data, random_values)
+
+        all_raw_copies.extend(raw_copies)
+        all_zdf_copies.extend(zdf_copies)
+
+    raw_data_list = []
+    zdf_data_list = []
+
+    for raw, zdf in zip(all_raw_copies, all_zdf_copies):
+        await data_publisher.publish_data("tic.status.testtel.fits.pipeline.raw", raw, host, port)
+        raw_data_list.append(raw)
         if zdf:  # Publikuj tylko niepuste rekordy
-            zdf_data = json.dumps(zdf)
-            await data_publisher.publish_data("tic.status.testtel.fits.pipeline.zdf", zdf_data)
+            await data_publisher.publish_data("tic.status.testtel.fits.pipeline.zdf", zdf, host, port)
+            zdf_data_list.append(zdf)
+
+
+def run():
+    parser = argparse.ArgumentParser(description="Run the data simulator.")
+    parser.add_argument("--num_copies", type=int, default=10, help="Number of copies to generate for each telescope")
+    parser.add_argument("--host", type=str, default="localhost", help="NATS server host")
+    parser.add_argument("--port", type=int, default=4222, help="NATS server port")
+    parser.add_argument("--telescopes", type=str, default="zb08,jk15", help="Comma-separated list of telescopes")
+    args = parser.parse_args()
+
+    telescopes = args.telescopes.split(',')
+
+    asyncio.run(main(args.num_copies, args.host, args.port, telescopes))
+
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    run()

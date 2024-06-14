@@ -4,27 +4,46 @@ import string
 from serverish.messenger import Messenger
 import aiofiles
 
-TELESCOP_OPTIONS = ["zb08", "jk15"]
-FILTER_OPTIONS = string.ascii_uppercase
 
 class DataPublisher:
-    async def read_json(self, file_path):
+    FILTER_OPTIONS = string.ascii_uppercase
+
+    FILE_PATHS = {
+        "raw": "src/simulator/raw.json",
+        "zdf": "src/simulator/zdf.json"
+    }
+
+    def __init__(self, telescopes=None):
+        self.telescopes = telescopes or ["zb08", "jk15"]
+
+    @staticmethod
+    async def read_json(data_type):
+        file_path = DataPublisher.FILE_PATHS.get(data_type)
+        if not file_path:
+            raise ValueError("Invalid data type. Choose 'raw' or 'zdf'.")
+
         async with aiofiles.open(file_path, 'r') as file:
             data = await file.read()
             return json.loads(data)
 
-    def generate_random_values(self, num_copies):
+    @staticmethod
+    def generate_unique_id(length=8):
+        return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+
+    @staticmethod
+    def generate_random_values(num_copies, telescope):
         random_values = []
         for i in range(num_copies):
             random_values.append({
-                "id": i + 1,
-                "TELESCOP": random.choice(TELESCOP_OPTIONS),
-                "FILTER": random.choice(FILTER_OPTIONS),
+                "id": DataPublisher.generate_unique_id(),
+                "TELESCOP": telescope,
+                "FILTER": random.choice(DataPublisher.FILTER_OPTIONS),
                 "OBJECT_NAME": f"w_tuc{i + 1}"
             })
         return random_values
 
-    def create_copies(self, original_data, random_values):
+    @staticmethod
+    def create_copies(original_data, random_values):
         copies = []
         for values in random_values:
             copy = json.loads(json.dumps(original_data))  # Deep copy
@@ -36,7 +55,8 @@ class DataPublisher:
             copies.append(copy)
         return copies
 
-    def create_zdf_copies(self, original_data, random_values):
+    @staticmethod
+    def create_zdf_copies(original_data, random_values):
         zdf_copies = []
         for values in random_values:
             if random.random() < 0.8:  # 80% szans na wystąpienie
@@ -51,9 +71,10 @@ class DataPublisher:
                 zdf_copies.append({})  # Pusty rekord
         return zdf_copies
 
-    async def publish_data(self, stream, data):
+    @staticmethod
+    async def publish_data(stream, data, host, port):
         messenger = Messenger()
-        await messenger.open("localhost", 4222, wait=5)
+        await messenger.open(host, port, wait=5)
         publisher = messenger.get_publisher(stream)
         await publisher.publish(data)
         await messenger.close()
