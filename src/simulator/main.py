@@ -1,6 +1,7 @@
 import asyncio
 from .data_publisher import DataPublisher
 import argparse
+import os
 
 
 async def main(num_copies, host, port, telescopes):
@@ -32,11 +33,14 @@ async def main(num_copies, host, port, telescopes):
 
 
 def run():
+    # os.environ['NUM_COPIES'] = '15'
     parser = argparse.ArgumentParser(description="Run the data simulator.")
-    parser.add_argument("--num_copies", type=int, default=10, help="Number of copies to generate for each telescope")
-    parser.add_argument("--host", type=str, default="localhost", help="NATS server host")
-    parser.add_argument("--port", type=int, default=4222, help="NATS server port")
-    parser.add_argument("--telescopes", type=str, default="zb08,jk15", help="Comma-separated list of telescopes")
+    parser.add_argument("--num_copies", type=int, default=os.getenv("NUM_COPIES", 10),
+                        help="Number of copies to generate for each telescope")
+    parser.add_argument("--host", type=str, default=os.getenv("NATS_HOST", "localhost"), help="NATS server host")
+    parser.add_argument("--port", type=int, default=os.getenv("NATS_PORT", 4222), help="NATS server port")
+    parser.add_argument("--telescopes", type=str, default=os.getenv("TELESCOPES", "zb08,jk15"),
+                        help="Comma-separated list of telescopes")
     args = parser.parse_args()
 
     telescopes = args.telescopes.split(',')
