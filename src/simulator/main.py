@@ -31,9 +31,8 @@ async def main(num_copies, host, port, telescopes):
             await data_publisher.publish_data("tic.status.testtel.fits.pipeline.zdf", zdf, host, port)
             zdf_data_list.append(zdf)
 
-
 def run():
-    # os.environ['NUM_COPIES'] = '15'
+    # os.environ['NUM_COPIES'] = '11'
     parser = argparse.ArgumentParser(description="Run the data simulator.")
     parser.add_argument("--num_copies", type=int, default=os.getenv("NUM_COPIES", 10),
                         help="Number of copies to generate for each telescope")
