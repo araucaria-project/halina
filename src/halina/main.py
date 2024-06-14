@@ -1,29 +1,70 @@
 import asyncio
+import json
 import logging
+import os
 import signal
 import sys
 
+from configuration import GlobalConfig
+from halina.email_rapport_service import EmailRapportService
+from halina.nats_connection_service import NatsConnectionService
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] [%(name)s] %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('main')
 
 
+def get_setting(name: str, settings: dict):
+    if name in settings:
+        return settings.get(name, None)
+    env = os.getenv(name)
+    if env is not None:
+        return env
+    return None
+
+
+def set_single_setting(name: str, settings: dict, type_str: bool = True):
+    setting = get_setting(name, settings)
+    if setting is not None:
+        try:
+            setting = json.loads(setting)
+        except ValueError:
+            logger.warning(f"Can not cast arg: {name}")
+        GlobalConfig.set(name, setting)
+
+
+def read_configuration(**kwargs):
+    set_single_setting(GlobalConfig.NATS_PORT, kwargs, False)
+    set_single_setting(GlobalConfig.NATS_HOST, kwargs)
+    set_single_setting(GlobalConfig.TELESCOPES_NAME, kwargs, False)
+    set_single_setting(GlobalConfig.EMAILS_TO, kwargs, False)
+
+
 async def main_coroutine():
-    # todo tutaj wstawić servisy
-    # try:
-    #     await s1.start()
-    #     await s1.join()
-    # finally:
-    #     await s1.stop()
+    # Nats connection service
+    nats_connection_handler_service = NatsConnectionService()
+    email_rapport_service = EmailRapportService()
 
-    pass
+    services = [nats_connection_handler_service,
+                email_rapport_service]
+    try:
+        # start all services one by one
+        for s in services:
+            await s.start()
+
+        # wait for all services finished work or will be canceled. Order doesn't matter.
+        for s in services:
+            await s.join()
+    finally:
+        # stop all services one by one
+        for s in services:
+            await s.stop()
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv
-
+def main(**kwargs):
+    if not kwargs:
+        kwargs = dict(arg.split('=') for arg in sys.argv[0:] if len(arg.split('=')) == 2)
+    read_configuration(**kwargs)
     coro = main_coroutine()
 
     try:
@@ -34,6 +75,7 @@ def main(argv=None):
 
     def ask_exit():
         raise KeyboardInterrupt
+
     loop.add_signal_handler(signal.SIGINT, ask_exit)
 
     try:
@@ -61,5 +103,5 @@ def main(argv=None):
 
 
 if __name__ == '__main__':
-    retcode = main(sys.argv)
+    retcode = main()
     sys.exit(retcode)
