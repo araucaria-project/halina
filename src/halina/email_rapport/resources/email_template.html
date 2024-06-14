@@ -1,23 +1,30 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>{{ subject }}</title>
+    <meta charset="UTF-8">
+    <title>Night Report</title>
 </head>
 <body>
-    <h1>{{ subject }}</h1>
+    <h1>Night Report</h1>
     <p>Night: {{ night }}</p>
-    <p>Total number of FITS saved: {{ total_fits }}</p>
+    <p>Total FITS: {{ total_fits }}</p>
     <p>zb08: {{ zb08 }}</p>
     <p>jk15: {{ jk15 }}</p>
-    <table>
-        {% for row in table_data %}
+    <h2>Data Table</h2>
+    <table border="1">
         <tr>
-            {% for item in row %}
-            <td>{{ item }}</td>
-            {% endfor %}
+            <th>Object</th>
+            <th>#Files</th>
+            <th>Filters</th>
+        </tr>
+        {% for obj in data_objects.values() %}
+        <tr>
+            <td>{{ obj.name }}</td>
+            <td>{{ obj.count }}</td>
+            <td>{{ obj.filters | join(', ') }}</td>
         </tr>
         {% endfor %}
     </table>
-    <img src="cid:image1" alt="Image">
+    <img src="cid:image1" alt="Zdjęcie" />
 </body>
 </html>

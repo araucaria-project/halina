@@ -16,7 +16,7 @@ class EmailBuilder:
         self._total_fits = None
         self._zb08 = None
         self._jk15 = None
-        self._table_data = None
+        self._data_objects = None
         self._image_path = "src/halina/email_rapport/resources/zdjecie.png"
 
     def set_subject(self, subject):
@@ -54,11 +54,11 @@ class EmailBuilder:
         self.set_jk15(jk15)
         return self
 
-    def set_table_data(self, table_data):
-        self._table_data = table_data
+    def set_data_objects(self, data_objects):
+        self._data_objects = data_objects
 
-    def table_data(self, table_data):
-        self.set_table_data(table_data)
+    def data_objects(self, data_objects):
+        self.set_data_objects(data_objects)
         return self
 
     async def build(self) -> MIMEMultipart:
@@ -69,7 +69,7 @@ class EmailBuilder:
             'total_fits': self._total_fits,
             'zb08': self._zb08,
             'jk15': self._jk15,
-            'table_data': self._table_data
+            'data_objects': self._data_objects
         }
         content = template.render(context)
 
