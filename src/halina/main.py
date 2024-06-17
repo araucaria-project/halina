@@ -27,7 +27,8 @@ def set_single_setting(name: str, settings: dict, type_str: bool = True):
     setting = get_setting(name, settings)
     if setting is not None:
         try:
-            setting = json.loads(setting)
+            if not type_str:
+                setting = json.loads(setting)
         except ValueError:
             logger.warning(f"Can not cast arg: {name}")
         GlobalConfig.set(name, setting)
