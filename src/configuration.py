@@ -44,14 +44,16 @@ class GlobalConfig:
     NATS_PORT = "NATS_PORT"
     TELESCOPES_NAME = "TELESCOPES_NAME"
     EMAILS_TO = "EMAILS"
+    TIMEZONE = "TIMEZONE"
 
     __conf: Dict[str, __ConfigVal] = {
         NATS_HOST: __ConfigVal("localhost", str),
         NATS_PORT: __ConfigVal(4222, int),
         TELESCOPES_NAME: __ConfigVal([], list),
-        EMAILS_TO: __ConfigVal([], list)
+        EMAILS_TO: __ConfigVal([], list),
+        TIMEZONE: __ConfigVal(0, int)
     }
-    __setters = [NATS_HOST, NATS_PORT, TELESCOPES_NAME, EMAILS_TO]
+    __setters = [NATS_HOST, NATS_PORT, TELESCOPES_NAME, EMAILS_TO, TIMEZONE]
 
     @staticmethod
     def get(name, default=None):
