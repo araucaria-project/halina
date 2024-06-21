@@ -1,30 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Night Report</title>
-</head>
-<body>
-    <h1>Night Report</h1>
-    <p>Night: {{ night }}</p>
-    <p>Total FITS: {{ total_fits }}</p>
-    <p>zb08: {{ zb08 }}</p>
-    <p>jk15: {{ jk15 }}</p>
-    <h2>Data Table</h2>
-    <table border="1">
+    <style>
+      body,
+      * {
+        font-family: Arial, sans-serif;
+        margin: 0;
+      }
+
+      body {
+        padding: 2rem;
+      }
+
+      h1 {
+        color: #333;
+        text-align: center;
+      }
+
+      p {
+        font-size: 16px;
+        color: #666;
+      }
+
+      h2 {
+        color: #333;
+        margin-top: 40px;
+        text-align: center;
+      }
+
+      table {
+        max-width: 48rem;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 1rem auto 2rem;
+        font-size: 16px;
+        border-radius: 0.8rem;
+        overflow: hidden;
+        table-layout: fixed;
+      }
+
+      .description {
+        margin: 20px;
+      }
+
+      .description p {
+        padding: 0.2rem;
+      }
+
+      .container {
+        max-width: 64rem;
+        margin: 0 auto;
+        background: #c4c9d3a9;
+        border-radius: 1rem;
+        padding: 1.8rem 2rem;
+        position: relative; /* Add this to create a reference for the absolute positioned logo */
+      }
+
+      table,
+      th,
+      td {
+        border: 1px solid #bdbdbd;
+      }
+
+      th,
+      td {
+        padding: 4px;
+        text-align: center;
+      }
+
+      th {
+        background-color: #003eb1a9;
+        color: white;
+      }
+
+      tr:hover {
+        background-color: #c5c5c5;
+      }
+
+      .center {
+        text-align: center;
+      }
+
+      th,
+      td {
+        width: calc(100% / 3);
+      }
+
+      .center img {
+        max-width: 100%;
+        border-radius: 0.5rem;
+      }
+
+      .logo {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 100px;
+        height: 100px;
+        overflow: hidden;
+      }
+
+      .logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">
+        <img src="cid:logo" alt="Logo" />
+      </div>
+      <h1>Night Report</h1>
+      <h3 class="center">{{ night }}</h3>
+      <div class="description">
+        <p class="center">Total FITS: {{ total_fits }}</p>
+        <p class="center">zb08: {{ zb08 }}</p>
+        <p class="center">jk15: {{ jk15 }}</p>
+      </div>
+      <h2>Data Table</h2>
+      <table border="1">
         <tr>
-            <th>Object</th>
-            <th>#Files</th>
-            <th>Filters</th>
+          <th>Object</th>
+          <th>#Files</th>
+          <th>Filters</th>
         </tr>
         {% for obj in data_objects.values() %}
         <tr>
-            <td>{{ obj.name }}</td>
-            <td>{{ obj.count }}</td>
-            <td>{{ obj.filters | join(', ') }}</td>
+          <td>{{ obj.name }}</td>
+          <td>{{ obj.count }}</td>
+          <td>{{ obj.filters | join(', ') }}</td>
         </tr>
         {% endfor %}
-    </table>
-    <img src="cid:image1" alt="Zdjęcie" />
-</body>
+      </table>
+      <div class="center">
+        <img src="cid:image1" alt="Zdjęcie" />
+      </div>
+    </div>
+  </body>
 </html>

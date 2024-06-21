@@ -18,6 +18,7 @@ class EmailBuilder:
         self._jk15 = None
         self._data_objects = None
         self._image_path = "src/halina/email_rapport/resources/zdjecie.png"
+        self._logo_path = "src/halina/email_rapport/resources/araucaria_logo.png"
 
     def set_subject(self, subject):
         self._subject = subject
@@ -87,5 +88,13 @@ class EmailBuilder:
         image.add_header('Content-ID', '<image1>')
         image.add_header('Content-Disposition', 'inline', filename="zdjecie.png")
         message.attach(image)
+
+        # Attach logo
+        async with aiofiles.open(self._logo_path, 'rb') as logo:
+            logo_data = await logo.read()
+        logo_image = MIMEImage(logo_data)
+        logo_image.add_header('Content-ID', '<logo>')
+        logo_image.add_header('Content-Disposition', 'inline', filename="araucaria_logo.png")
+        message.attach(logo_image)
 
         return message
