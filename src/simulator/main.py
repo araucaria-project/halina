@@ -25,10 +25,11 @@ async def main(num_copies, host, port, telescopes):
     zdf_data_list = []
 
     for raw, zdf in zip(all_raw_copies, all_zdf_copies):
-        await data_publisher.publish_data("tic.status.testtel.fits.pipeline.raw", raw, host, port)
+        telescope = raw['raw']['header']['TELESCOP']
+        await data_publisher.publish_data(telescope, "raw", raw, host, port)
         raw_data_list.append(raw)
         if zdf:  # Publikuj tylko niepuste rekordy
-            await data_publisher.publish_data("tic.status.testtel.fits.pipeline.zdf", zdf, host, port)
+            await data_publisher.publish_data(telescope, "zdf", zdf, host, port)
             zdf_data_list.append(zdf)
 
 def run():

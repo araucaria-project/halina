@@ -84,9 +84,10 @@ class DataPublisher:
         return zdf_copies
 
     @staticmethod
-    async def publish_data(stream, data, host, port):
+    async def publish_data(telescope, stream, data, host, port):
         messenger = Messenger()
         await messenger.open(host, port, wait=5)
-        publisher = messenger.get_publisher(stream)
+        publisher = messenger.get_publisher(f"tic.status.{telescope}.fits.pipeline.{stream}")
         await publisher.publish(data)
         await messenger.close()
+
