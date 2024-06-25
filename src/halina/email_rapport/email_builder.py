@@ -13,9 +13,11 @@ class EmailBuilder:
     def __init__(self):
         self._subject = None
         self._night = None
-        self._total_fits = None
-        self._zb08 = None
-        self._jk15 = None
+        self._count_fits = None
+        self._count_fits_processed = None
+        self._malformed_raw_count = None
+        self._malformed_zdf_count = None
+        self._telescopes_data = {}
         self._data_objects = None
         self._image_path = "src/halina/email_rapport/resources/zdjecie.png"
         self._logo_path = "src/halina/email_rapport/resources/araucaria_logo.png"
@@ -34,25 +36,39 @@ class EmailBuilder:
         self.set_night(night)
         return self
 
-    def set_total_fits(self, total_fits):
-        self._total_fits = total_fits
+    def set_count_fits(self, count_fits):
+        self._count_fits = count_fits
 
-    def total_fits(self, total_fits):
-        self.set_total_fits(total_fits)
+    def count_fits(self, count_fits):
+        self.set_count_fits(count_fits)
         return self
 
-    def set_zb08(self, zb08):
-        self._zb08 = zb08
+    def set_count_fits_processed(self, count_fits_processed):
+        self._count_fits_processed = count_fits_processed
 
-    def zb08(self, zb08):
-        self.set_zb08(zb08)
+    def count_fits_processed(self, count_fits_processed):
+        self.set_count_fits_processed(count_fits_processed)
         return self
 
-    def set_jk15(self, jk15):
-        self._jk15 = jk15
+    def set_malformed_raw_count(self, malformed_raw_count):
+        self._malformed_raw_count = malformed_raw_count
 
-    def jk15(self, jk15):
-        self.set_jk15(jk15)
+    def malformed_raw_count(self, malformed_raw_count):
+        self.set_malformed_raw_count(malformed_raw_count)
+        return self
+
+    def set_malformed_zdf_count(self, malformed_zdf_count):
+        self._malformed_zdf_count = malformed_zdf_count
+
+    def malformed_zdf_count(self, malformed_zdf_count):
+        self.set_malformed_zdf_count(malformed_zdf_count)
+        return self
+
+    def set_telescopes_data(self, telescopes_data):
+        self._telescopes_data = telescopes_data
+
+    def telescopes_data(self, telescopes_data):
+        self.set_telescopes_data(telescopes_data)
         return self
 
     def set_data_objects(self, data_objects):
@@ -67,9 +83,11 @@ class EmailBuilder:
         template = env.get_template("resources/email_template.html")
         context = {
             'night': self._night,
-            'total_fits': self._total_fits,
-            'zb08': self._zb08,
-            'jk15': self._jk15,
+            'count_fits': self._count_fits,
+            'count_fits_processed': self._count_fits_processed,
+            'malformed_raw_count': self._malformed_raw_count,
+            'malformed_zdf_count': self._malformed_zdf_count,
+            'telescopes_data': self._telescopes_data,
             'data_objects': self._data_objects
         }
         content = template.render(context)
