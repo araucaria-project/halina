@@ -17,7 +17,7 @@ class TelescopeDtaCollector:
 
     def __init__(self, telescope_name: str = "", utc_offset: int = 0):
         self._utc_offset: int = utc_offset  # offset hour for time zones
-        self._data_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.raw3"
+        self._data_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.raw"
         self._fits_processed_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.zdf"
 
         # {fits_id: dict(raw: raw_fits, zdf: zdf_fits)}
