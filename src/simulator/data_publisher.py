@@ -37,7 +37,7 @@ class DataPublisher:
     def generate_random_values(num_copies, telescope):
         random_values = []
         for i in range(num_copies):
-            now = datetime.datetime.now()
+            now = datetime.datetime.now(datetime.UTC)
             date_obs = now.isoformat(sep='T', timespec='auto')
             jd = datetime_to_julian(now)
             random_values.append({
