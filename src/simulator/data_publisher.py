@@ -37,8 +37,9 @@ class DataPublisher:
     def generate_random_values(num_copies, telescope):
         random_values = []
         for i in range(num_copies):
-            now = datetime.datetime.now(datetime.UTC)
+            now = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=8)
             date_obs = now.isoformat(sep='T', timespec='auto')
+            print(date_obs)
             jd = datetime_to_julian(now)
             random_values.append({
                 "id": DataPublisher.generate_unique_id(),
