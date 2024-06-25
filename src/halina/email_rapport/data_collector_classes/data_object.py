@@ -9,4 +9,4 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 class DataObject:
     name: str
     count: int = 0
-    filters: Set[str] = dataclasses.field(default_factory=lambda: ())
+    filters: Set[str] = dataclasses.field(default_factory=lambda: set())
