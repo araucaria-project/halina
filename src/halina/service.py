@@ -42,14 +42,17 @@ class Service(ABC):
             await self._on_stop()
             self._main_task.cancel()
             try:
-                await asyncio.wait(self._main_task)
+                await asyncio.wait([self._main_task])
             except asyncio.CancelledError:
                 logger.info(f"Service {self._NAME} was stopped")
 
     async def join(self):
-        try:
-            await asyncio.wait([self._main_task])
-        except asyncio.CancelledError:
-            pass
-        except KeyboardInterrupt:
-            raise
+        if self._main_task is not None:
+            try:
+                await asyncio.gather(self._main_task, return_exceptions=True)
+            except asyncio.CancelledError:
+                logger.info(f"Service {self._NAME} was canceled")
+                pass
+            except KeyboardInterrupt:
+                logger.info(f"Service {self._NAME} was stop by KeyboardInterrupt")
+                raise
