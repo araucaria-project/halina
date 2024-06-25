@@ -49,17 +49,6 @@ class EmailRapportService(Service):
                     f"Find fits: {[f"{name}: ({i.count_fits})" for name, i in telescopes.items()]}")
 
         # todo continue here
-        logger.info(f"Collecting data from telescopes: {self._telescopes}")
-        telescopes = {}
-        if self._telescopes:
-            for tel in self._telescopes:
-                telescopes[tel] = TelescopeDtaCollector(telescope_name=tel, utc_offset=self._utc_offset)
-
-        coros = [i.collect_data() for i in telescopes.values()]
-        await asyncio.gather(*coros, return_exceptions=True)
-        logger.info(f"Scanning stream for fits completed. "
-                    f"Find fits: {[f"{name}: ({i.count_fits})" for name, i in telescopes.items()]}")
-
         # Prepare data for email
         total_fits = sum(tel.count_fits for tel in telescopes.values())
         total_fits_processed = sum(tel.count_fits_processed for tel in telescopes.values())
