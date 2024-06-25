@@ -1,8 +1,11 @@
+# data_publisher.py
 import json
 import random
 import string
 from serverish.messenger import Messenger
 import aiofiles
+from pyaraucaria.date import datetime_to_julian
+import datetime
 
 
 class DataPublisher:
@@ -34,11 +37,16 @@ class DataPublisher:
     def generate_random_values(num_copies, telescope):
         random_values = []
         for i in range(num_copies):
+            now = datetime.datetime.now()
+            date_obs = now.isoformat(sep='T', timespec='auto')
+            jd = datetime_to_julian(now)
             random_values.append({
                 "id": DataPublisher.generate_unique_id(),
                 "TELESCOP": telescope,
                 "FILTER": random.choice(DataPublisher.FILTER_OPTIONS),
-                "OBJECT_NAME": f"w_tuc{i + 1}"
+                "OBJECT_NAME": f"w_tuc{i + 1}",
+                "DATE-OBS": date_obs,
+                "JD": jd
             })
         return random_values
 
@@ -51,6 +59,8 @@ class DataPublisher:
             copy['raw']['header']['FILTER'] = values["FILTER"]
             copy['fits_id'] = values["id"]
             copy['raw']['header']['OBJECT'] = values["OBJECT_NAME"]
+            copy['raw']['header']['DATE-OBS'] = values["DATE-OBS"]
+            copy['raw']['header']['JD'] = values["JD"]
             copy['raw']['objects'][values["OBJECT_NAME"]] = copy['raw']['objects'].pop("w_tuc")
             copies.append(copy)
         return copies
@@ -65,6 +75,8 @@ class DataPublisher:
                 copy['zdf']['header']['FILTER'] = values["FILTER"]
                 copy['fits_id'] = values["id"]
                 copy['zdf']['header']['OBJECT'] = values["OBJECT_NAME"]
+                copy['zdf']['header']['DATE-OBS'] = values["DATE-OBS"]
+                copy['zdf']['header']['JD'] = values["JD"]
                 copy['zdf']['objects'][values["OBJECT_NAME"]] = copy['zdf']['objects'].pop("w_tuc")
                 zdf_copies.append(copy)
             else:
