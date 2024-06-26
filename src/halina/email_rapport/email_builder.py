@@ -64,12 +64,12 @@ class EmailBuilder:
         # Attach HTML
         message.attach(MIMEText(content, "html"))
 
-        async with aiofiles.open(self._image_path, 'rb') as img:
-            img_data = await img.read()
-        image = MIMEImage(img_data)
-        image.add_header('Content-ID', '<image1>')
-        image.add_header('Content-Disposition', 'inline', filename="zdjecie.png")
-        message.attach(image)
+        # async with aiofiles.open(self._image_path, 'rb') as img:
+        #     img_data = await img.read()
+        # image = MIMEImage(img_data)
+        # image.add_header('Content-ID', '<image1>')
+        # image.add_header('Content-Disposition', 'inline', filename="zdjecie.png")
+        # message.attach(image)
 
         # Attach logo
         async with aiofiles.open(self._logo_path, 'rb') as logo:

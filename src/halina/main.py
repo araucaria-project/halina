@@ -78,7 +78,13 @@ def main(**kwargs):
     def ask_exit():
         raise KeyboardInterrupt
 
-    if platform.system() != 'Windows':
+    if platform.system() == 'Windows':
+        def windows_sigint_handler(signum, frame):
+            ask_exit()
+            loop.call_soon_threadsafe(loop.stop)
+
+        signal.signal(signal.SIGINT, windows_sigint_handler)
+    else:
         loop.add_signal_handler(signal.SIGINT, ask_exit)
 
     try:

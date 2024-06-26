@@ -1,7 +1,6 @@
 import asyncio
 import logging
-import datetime
-from typing import List, Dict
+from typing import Dict
 from collections import defaultdict
 
 from serverish.messenger import Messenger
@@ -18,7 +17,6 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 class EmailRapportService(Service):
-
     def __init__(self, utc_offset: int = 0):
         super().__init__()
         self._nats_messenger = Messenger()
@@ -26,7 +24,7 @@ class EmailRapportService(Service):
         self._telescopes: list = GlobalConfig.get(GlobalConfig.TELESCOPES_NAME)
 
     @staticmethod
-    def format_night() -> str:
+    def __format_night() -> str:
         yesterday_midday = DateUtils.yesterday_midday()
         today_midday = DateUtils.today_midday()
 
@@ -46,6 +44,7 @@ class EmailRapportService(Service):
             merged_objects[obj.name].filters.update(obj.filters)
 
         return merged_objects
+
     async def _main(self):
         try:
             await self._collect_data_and_send()
@@ -94,13 +93,13 @@ class EmailRapportService(Service):
                 all_data_objects[key].filters.update(value.filters)
 
         # Build and send email
-        night = self.format_night()
+        night = self.__format_night()
 
-        email_builder = EmailBuilder()
-        email_builder.subject("Night Report")
-        email_builder.night(night)
-        email_builder.telescope_data(telescope_data)
-        email_builder.data_objects(all_data_objects)
+        email_builder = (EmailBuilder()
+                         .subject("Night Report")
+                         .night(night)
+                         .telescope_data(telescope_data)
+                         .data_objects(all_data_objects))
 
         email_message = await email_builder.build()
         email_sender = EmailSender("d.chmalu@gmail.com")
@@ -110,5 +109,6 @@ class EmailRapportService(Service):
         else:
             logger.error("Failed to send mail.")
 
-    class SendEmailException(Exception):
-        pass
+
+class SendEmailException(Exception):
+    pass
