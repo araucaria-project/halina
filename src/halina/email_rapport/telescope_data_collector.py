@@ -28,7 +28,7 @@ class TelescopeDtaCollector:
         self._finish_reading_streams: int = 0
 
         # collected data
-        self.objects: Dict[str, DataObject] = {}  # used dict instead list is faster
+        self.objects: Dict[str, 0] = {}  # used dict instead list is faster
         self.count_fits: int = 0
         self.count_fits_processed: int = 0
         self.malformed_raw_count: int = 0

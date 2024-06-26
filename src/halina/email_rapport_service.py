@@ -1,5 +1,8 @@
 import asyncio
 import logging
+import datetime
+from typing import List, Dict
+from collections import defaultdict
 
 from serverish.messenger import Messenger
 
@@ -8,6 +11,8 @@ from halina.email_rapport.email_builder import EmailBuilder
 from halina.email_rapport.email_sender import EmailSender
 from halina.email_rapport.telescope_data_collector import TelescopeDtaCollector
 from halina.service import Service
+from halina.email_rapport.data_collector_classes.data_object import DataObject
+from halina.date_utils import DateUtils
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
@@ -20,6 +25,27 @@ class EmailRapportService(Service):
         self._utc_offset: int = utc_offset
         self._telescopes: list = GlobalConfig.get(GlobalConfig.TELESCOPES_NAME)
 
+    @staticmethod
+    def format_night() -> str:
+        yesterday_midday = DateUtils.yesterday_midday()
+        today_midday = DateUtils.today_midday()
+
+        if yesterday_midday.month == today_midday.month:
+            return f"{yesterday_midday.day}-{today_midday.day} {yesterday_midday.strftime('%b %Y')}"
+        else:
+            return f"{yesterday_midday.day} {yesterday_midday.strftime('%b')} - {today_midday.day} {today_midday.strftime('%b %Y')}"
+
+    @staticmethod
+    def merge_data_objects(objects: Dict[str, DataObject]) -> Dict[str, DataObject]:
+        merged_objects = defaultdict(lambda: DataObject(name="", count=0, filters=set()))
+
+        for obj in objects.values():
+            if merged_objects[obj.name].name == "":
+                merged_objects[obj.name].name = obj.name
+            merged_objects[obj.name].count += obj.count
+            merged_objects[obj.name].filters.update(obj.filters)
+
+        return merged_objects
     async def _main(self):
         try:
             await self._collect_data_and_send()
@@ -48,31 +74,33 @@ class EmailRapportService(Service):
         logger.info(f"Scanning stream for fits completed. "
                     f"Find fits: {[f"{name}: ({i.count_fits})" for name, i in telescopes.items()]}")
 
-        # todo continue here
         # Prepare data for email
-        total_fits = sum(tel.count_fits for tel in telescopes.values())
-        total_fits_processed = sum(tel.count_fits_processed for tel in telescopes.values())
-        total_malformed_raw = sum(tel.malformed_raw_count for tel in telescopes.values())
-        total_malformed_zdf = sum(tel.malformed_zdf_count for tel in telescopes.values())
-        email_data = {
-            tel: {
-                'count_fits': tel_data.count_fits,
-                'count_fits_processed': tel_data.count_fits_processed,
-                'malformed_raw_count': tel_data.malformed_raw_count,
-                'malformed_zdf_count': tel_data.malformed_zdf_count,
-                'objects': tel_data.objects
-            } for tel, tel_data in telescopes.items()
-        }
+        telescope_data = []
+        all_data_objects = defaultdict(lambda: DataObject(name="", count=0, filters=set()))
+
+        for tel in self._telescopes:
+            telescope_info = {
+                'name': tel,
+                'count_fits': telescopes[tel].count_fits,
+                'count_fits_processed': telescopes[tel].count_fits_processed,
+                'malformed_raw_count': telescopes[tel].malformed_raw_count,
+                'malformed_zdf_count': telescopes[tel].malformed_zdf_count
+            }
+            telescope_data.append(telescope_info)
+            merged_objects = self.merge_data_objects(telescopes[tel].objects)
+            for key, value in merged_objects.items():
+                all_data_objects[key].name = value.name
+                all_data_objects[key].count += value.count
+                all_data_objects[key].filters.update(value.filters)
 
         # Build and send email
+        night = self.format_night()
+
         email_builder = EmailBuilder()
         email_builder.subject("Night Report")
-        email_builder.night("12-14 Dec 2024")
-        email_builder.count_fits(total_fits)
-        email_builder.count_fits_processed(total_fits_processed)
-        email_builder.malformed_raw_count(total_malformed_raw)
-        email_builder.malformed_zdf_count(total_malformed_zdf)
-        email_builder.telescopes_data(email_data)
+        email_builder.night(night)
+        email_builder.telescope_data(telescope_data)
+        email_builder.data_objects(all_data_objects)
 
         email_message = await email_builder.build()
         email_sender = EmailSender("d.chmalu@gmail.com")
@@ -82,6 +110,5 @@ class EmailRapportService(Service):
         else:
             logger.error("Failed to send mail.")
 
-
-class SendEmailException(Exception):
-    pass
+    class SendEmailException(Exception):
+        pass
