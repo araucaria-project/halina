@@ -94,20 +94,25 @@ class EmailRapportService(Service):
 
         # Build and send email
         night = self.__format_night()
+        email_recipients = GlobalConfig.get(GlobalConfig.EMAILS_TO)
 
-        email_builder = (EmailBuilder()
-                         .subject("Night Report")
-                         .night(night)
-                         .telescope_data(telescope_data)
-                         .data_objects(all_data_objects))
+        for email in email_recipients:
+            logger.info(f"\n\nEmail : {email}")
 
-        email_message = await email_builder.build()
-        email_sender = EmailSender("d.chmalu@gmail.com")
-        result = await email_sender.send(email_message)
-        if result:
-            logger.info("Mail sent successfully!")
-        else:
-            logger.error("Failed to send mail.")
+            email_builder = (EmailBuilder()
+                             .subject(f"Night Report - {night}")
+                             .night(night)
+                             .telescope_data(telescope_data)
+                             .data_objects(all_data_objects))
+
+            email_message = await email_builder.build()
+
+            email_sender = EmailSender(email)
+            result = await email_sender.send(email_message)
+            if result:
+                logger.info(f"Mail sent successfully to {email}!")
+            else:
+                logger.error(f"Failed to send mail to {email}.")
 
 
 class SendEmailException(Exception):
