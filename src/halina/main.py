@@ -4,6 +4,7 @@ import logging
 import os
 import signal
 import sys
+import platform
 
 from configuration import GlobalConfig
 from halina.email_rapport_service import EmailRapportService
@@ -77,7 +78,14 @@ def main(**kwargs):
     def ask_exit():
         raise KeyboardInterrupt
 
-    loop.add_signal_handler(signal.SIGINT, ask_exit)
+    if platform.system() == 'Windows':
+        def windows_sigint_handler(signum, frame):
+            ask_exit()
+            loop.call_soon_threadsafe(loop.stop)
+
+        signal.signal(signal.SIGINT, windows_sigint_handler)
+    else:
+        loop.add_signal_handler(signal.SIGINT, ask_exit)
 
     try:
         asyncio.set_event_loop(loop)
