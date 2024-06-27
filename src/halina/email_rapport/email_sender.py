@@ -7,19 +7,19 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 class EmailSender:
-    EMAIL_APP_PASSWORD = 'dxnp hpnc hwnk nlpv'
-    FROM_EMAIL = 'dchmal@akond.com'
-    SMTP_HOST = 'smtp.gmail.com'
-    SMTP_PORT = 587
+    EMAIL_APP_PASSWORD: str = 'dxnp hpnc hwnk nlpv'
+    FROM_EMAIL: str = 'dchmal@akond.com'
+    SMTP_HOST: str = 'smtp.gmail.com'
+    SMTP_PORT: int = 587
 
     def __init__(self, to_email: str):
-        self.to_email = to_email
+        self.to_email: str = to_email
 
-    async def send(self, message: MIMEMultipart):
+    async def send(self, message: MIMEMultipart) -> bool:
         message["From"] = EmailSender.FROM_EMAIL
         message["To"] = self.to_email
 
-        smtp = SMTP(hostname=self.SMTP_HOST, port=self.SMTP_PORT, start_tls=True)
+        smtp: SMTP = SMTP(hostname=self.SMTP_HOST, port=self.SMTP_PORT, start_tls=True)
 
         try:
             async with smtp:
