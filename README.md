@@ -26,7 +26,7 @@ The Halina project is a heuristic algorithmic library designed for managing and 
 1. Clone the repository:
     ```bash
     git clone https://github.com/araucaria-project/halina.git
-    cd halina
+    cd halina 
     ```
 
 2. Install `poetry` if you don't have it installed:
