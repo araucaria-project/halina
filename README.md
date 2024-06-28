@@ -7,9 +7,9 @@
 - [Installation](#installation)
 - [Usage](#usage)
   - [Email Report Service](#email-report-service)
+  - [Running the Data Simulator](#running-the-data-simulator)
 - [Configuration](#configuration)
 - [Development](#development)
-- [Files](#files)
 - [License](#license)
 
 ## Overview
@@ -24,18 +24,18 @@ The Halina project is a heuristic algorithmic library designed for managing and 
 ## Installation
 
 1. Clone the repository:
-    ``` bash
+    ```bash
     git clone https://github.com/araucaria-project/halina.git
     cd halina
     ```
 
 2. Install `poetry` if you don't have it installed:
-    ``` bash
+    ```bash
     curl -sSL https://install.python-poetry.org | python3 -
     ```
 
 3. Install the dependencies using `poetry`:
-    ``` bash
+    ```bash
     poetry install
     ```
 
@@ -47,8 +47,33 @@ The email report service collects data from various telescopes, processes it, an
 
 To run the email report service, use the following command:
 
-``` bash
+```bash
 poetry run services
+```
+
+### Running the Data Simulator
+
+The data simulator generates and publishes data for a set of telescopes. The data is published to a NATS server specified by the user.
+
+To run the simulator, use the following command:
+
+```bash
+poetry run simulator --num_copies 10 --host localhost --port 4222 --telescopes zb08,jk15
+```
+
+#### Arguments
+
+- `--num_copies`: Number of copies to generate for each telescope (default: 10)
+- `--host`: NATS server host (default: localhost)
+- `--port`: NATS server port (default: 4222)
+- `--telescopes`: Comma-separated list of telescope names (default: zb08,jk15)
+
+#### Example
+
+To generate and publish 12 copies of data for telescopes zb08 and jk15 to a NATS server running on localhost at port 4222, run:
+
+```bash 
+poetry run simulator --num_copies 12 --host localhost --port 4222 --telescopes zb08,jk15
 ```
 
 ## Configuration
@@ -63,7 +88,7 @@ The following environment variables can be used to configure the simulator and e
 
 Example usage with environment variables:
 
-``` bash
+```bash 
 export NUM_COPIES=12
 export NATS_HOST=localhost
 export NATS_PORT=4222
@@ -78,56 +103,10 @@ To set up a development environment:
 
 1. Clone the repository and install dependencies as described in the Installation section.
 2. Run tests to ensure everything is working correctly:
-    ``` bash
+    ```bash
     
     ```
 3. Make your changes and commit them to a new branch.
-
-## Files
-
-### `src/simulator/README.md`
-
-Contains detailed instructions for the data simulator utility, which connects to the NATS server using `serverish.Messenger` and sends fake data to the server. The observation data pretends to come from the telescope `halsim`.
-
-### `asyncio_util_functions.py`
-
-Contains utility functions for working with asyncio.
-
-### `date_utils.py`
-
-Provides utility functions for handling date and time, including converting to Julian dates.
-
-### `email_rapport_service.py`
-
-Collects data from telescopes and sends email reports.
-
-### `email_builder.py`
-
-Builds the email content using Jinja2 templates.
-
-### `email_sender.py`
-
-Sends the generated email using SMTP.
-
-### `telescope_data_collector.py`
-
-Collects data from the telescope data streams.
-
-### `email_rapport/data_collector_classes/data_object.py`
-
-Defines the data object structure for collecting data.
-
-### `main.py`
-
-Entry point for running the application.
-
-### `nats_connection_service.py`
-
-Manages the connection to the NATS server.
-
-### `service.py`
-
-Base class for services used in the project.
 
 ## License
 
