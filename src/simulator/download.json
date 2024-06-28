@@ -1,0 +1,27 @@
+{
+    "data": {
+        "msg": "fits_saved",
+        "descript": "Fits is saved to disc.",
+        "param": {
+            "loop": 1,
+            "nloops": 1,
+            "image_type": "science",
+            "filter": "V",
+            "raw_file_name": "devc_0452_01811.fits",
+            "raw_file_folder": "/data/fits/dev/raw/0452",
+            "obs_type": "science",
+            "date_obs": "2024-05-21T12:26:04.381477",
+            "target_name": "w_tuc"
+        },
+        "status": "ok",
+        "fits_id": "devc_0452_01811",
+        "telescope_id": "test_telescope_id",
+        "module": "test_module_name",
+        "ts": "test_timestamp"
+    },
+    "meta": {
+        "message_type": "test_message_type",
+        "tags": ["fits_download"],
+        "sender": "oca-fits-proc_test_module_name"
+    }
+}

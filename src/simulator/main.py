@@ -2,35 +2,49 @@ import asyncio
 from .data_publisher import DataPublisher
 import argparse
 import os
+import json
+import aiofiles
 
 
-async def main(num_copies, host, port, telescopes):
+async def main(num_copies, host, port, telescopes, only_download):
     data_publisher = DataPublisher(telescopes)
 
     raw_original_data = await data_publisher.read_json('raw')
     zdf_original_data = await data_publisher.read_json('zdf')
+    download_original_data = await data_publisher.read_json('download')
 
     all_raw_copies = []
     all_zdf_copies = []
+    all_download_copies = []
 
     for telescope in telescopes:
         random_values = data_publisher.generate_random_values(num_copies, telescope)
         raw_copies = data_publisher.create_copies(raw_original_data, random_values)
         zdf_copies = data_publisher.create_zdf_copies(zdf_original_data, random_values)
+        download_copies = data_publisher.create_download_copies(download_original_data, random_values)
 
         all_raw_copies.extend(raw_copies)
         all_zdf_copies.extend(zdf_copies)
+        all_download_copies.extend(download_copies)
 
     raw_data_list = []
     zdf_data_list = []
+    download_data_list = []
 
-    for raw, zdf in zip(all_raw_copies, all_zdf_copies):
+    for raw, zdf, download in zip(all_raw_copies, all_zdf_copies, all_download_copies):
         telescope = raw['raw']['header']['TELESCOP']
-        await data_publisher.publish_data(telescope, "raw", raw, host, port)
-        raw_data_list.append(raw)
-        if zdf:  # Publikuj tylko niepuste rekordy
-            await data_publisher.publish_data(telescope, "zdf", zdf, host, port)
-            zdf_data_list.append(zdf)
+        await data_publisher.publish_data(telescope, "download", download, host, port)
+        download_data_list.append(download)
+
+        if not only_download:
+            await data_publisher.publish_data(telescope, "raw", raw, host, port)
+            raw_data_list.append(raw)
+            if zdf:  # Publikuj tylko niepuste rekordy
+                await data_publisher.publish_data(telescope, "zdf", zdf, host, port)
+                zdf_data_list.append(zdf)
+
+    # async with aiofiles.open('generated_downloads.json', 'w') as outfile:
+    #     await outfile.write(json.dumps(download_data_list, indent=4))
 
 def run():
     # os.environ['NUM_COPIES'] = '11'
@@ -41,11 +55,13 @@ def run():
     parser.add_argument("--port", type=int, default=os.getenv("NATS_PORT", 4222), help="NATS server port")
     parser.add_argument("--telescopes", type=str, default=os.getenv("TELESCOPES", "zb08,jk15"),
                         help="Comma-separated list of telescopes")
+    parser.add_argument("--only_download", action='store_true', help="If set, only publish download data")
+
     args = parser.parse_args()
 
     telescopes = args.telescopes.split(',')
 
-    asyncio.run(main(args.num_copies, args.host, args.port, telescopes))
+    asyncio.run(main(args.num_copies, args.host, args.port, telescopes, args.only_download))
 
 
 if __name__ == "__main__":

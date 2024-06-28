@@ -13,7 +13,8 @@ class DataPublisher:
 
     FILE_PATHS = {
         "raw": "src/simulator/raw.json",
-        "zdf": "src/simulator/zdf.json"
+        "zdf": "src/simulator/zdf.json",
+        "download": "src/simulator/download.json"
     }
 
     def __init__(self, telescopes=None):
@@ -39,7 +40,6 @@ class DataPublisher:
         for i in range(num_copies):
             now = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=8)
             date_obs = now.isoformat(sep='T', timespec='auto')
-            print(date_obs)
             jd = datetime_to_julian(now)
             random_values.append({
                 "id": DataPublisher.generate_unique_id(),
@@ -85,10 +85,26 @@ class DataPublisher:
         return zdf_copies
 
     @staticmethod
+    def create_download_copies(original_data, random_values):
+        download_copies = []
+        for values in random_values:
+            copy = json.loads(json.dumps(original_data))  # Deep copy
+            copy['data']['param']['filter'] = values["FILTER"]
+            copy['data']['param']['date_obs'] = values["DATE-OBS"]
+            copy['data']['param']['target_name'] = values["OBJECT_NAME"]
+            copy['data']['fits_id'] = values["id"]
+            download_copies.append(copy)
+        return download_copies
+
+    @staticmethod
     async def publish_data(telescope, stream, data, host, port):
         messenger = Messenger()
         await messenger.open(host, port, wait=5)
-        publisher = messenger.get_publisher(f"tic.status.{telescope}.fits.pipeline.{stream}")
+        print(telescope, stream)
+        if stream == "download":
+            print(data)
+            publisher = messenger.get_publisher(f"tic.status.{telescope}.download")
+        else:
+            publisher = messenger.get_publisher(f"tic.status.{telescope}.fits.pipeline.{stream}")
         await publisher.publish(data)
         await messenger.close()
-
