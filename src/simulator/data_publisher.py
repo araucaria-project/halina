@@ -1,11 +1,14 @@
-# data_publisher.py
 import json
 import random
 import string
+import logging
 from serverish.messenger import Messenger
 import aiofiles
 from pyaraucaria.date import datetime_to_julian
 import datetime
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 class DataPublisher:
@@ -24,7 +27,8 @@ class DataPublisher:
     async def read_json(data_type):
         file_path = DataPublisher.FILE_PATHS.get(data_type)
         if not file_path:
-            raise ValueError("Invalid data type. Choose 'raw' or 'zdf'.")
+            logger.error(f"Invalid data type: {data_type}")
+            raise ValueError("Invalid data type. Choose 'raw', 'zdf', or 'download'.")
 
         async with aiofiles.open(file_path, 'r') as file:
             data = await file.read()
@@ -32,32 +36,38 @@ class DataPublisher:
 
     @staticmethod
     def generate_unique_id(length=8):
-        return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+        unique_id = ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+        return unique_id
 
     @staticmethod
     def generate_random_values(num_copies, telescope):
+        logger.info(f"Generating random values for {num_copies} copies for telescope {telescope}")
         random_values = []
         for i in range(num_copies):
             now = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=8)
             date_obs = now.isoformat(sep='T', timespec='auto')
             jd = datetime_to_julian(now)
-            random_values.append({
+            values = {
                 "id": DataPublisher.generate_unique_id(),
                 "TELESCOP": telescope,
                 "FILTER": random.choice(DataPublisher.FILTER_OPTIONS),
                 "OBJECT_NAME": f"w_tuc{i + 1}",
                 "DATE-OBS": date_obs,
                 "JD": jd
-            })
+            }
+            random_values.append(values)
+            logger.debug(f"Generated values: {values}")
         return random_values
 
     @staticmethod
     def dt_utcnow_array():
         now = datetime.datetime.now(datetime.UTC)
-        return [now.year, now.month, now.day, now.hour, now.minute, now.second, now.microsecond]
+        utcnow_array = [now.year, now.month, now.day, now.hour, now.minute, now.second, now.microsecond]
+        return utcnow_array
 
     @staticmethod
     def create_copies(original_data, random_values):
+        logger.info("Creating raw data copies")
         copies = []
         for values in random_values:
             copy = json.loads(json.dumps(original_data))  # Deep copy
@@ -73,9 +83,10 @@ class DataPublisher:
 
     @staticmethod
     def create_zdf_copies(original_data, random_values):
+        logger.info("Creating zdf data copies")
         zdf_copies = []
         for values in random_values:
-            if random.random() < 0.8:  # 80% szans na wystąpienie
+            if random.random() < 0.8:  # 80% chance of occurrence
                 copy = json.loads(json.dumps(original_data))  # Deep copy
                 copy['zdf']['header']['TELESCOP'] = values["TELESCOP"]
                 copy['zdf']['header']['FILTER'] = values["FILTER"]
@@ -86,11 +97,12 @@ class DataPublisher:
                 copy['zdf']['objects'][values["OBJECT_NAME"]] = copy['zdf']['objects'].pop("w_tuc")
                 zdf_copies.append(copy)
             else:
-                zdf_copies.append({})  # Pusty rekord
+                zdf_copies.append({})  # Empty record
         return zdf_copies
 
     @staticmethod
     def create_download_copies(original_data, random_values):
+        logger.info("Creating download data copies")
         download_copies = []
         for values in random_values:
             copy = json.loads(json.dumps(original_data))  # Deep copy
@@ -107,9 +119,8 @@ class DataPublisher:
     async def publish_data(telescope, stream, data, host, port):
         messenger = Messenger()
         await messenger.open(host, port, wait=5)
-        print(telescope, stream)
+        logger.info(f"Publishing data to stream: {stream} for telescope: {telescope}")
         if stream == "download":
-            print(data)
             publisher = messenger.get_publisher(f"tic.status.{telescope}.download")
         else:
             publisher = messenger.get_publisher(f"tic.status.{telescope}.fits.pipeline.{stream}")
