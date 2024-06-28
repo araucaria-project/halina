@@ -2,8 +2,6 @@ import asyncio
 from .data_publisher import DataPublisher
 import argparse
 import os
-import json
-import aiofiles
 
 
 async def main(num_copies, host, port, telescopes, only_download):
@@ -42,9 +40,6 @@ async def main(num_copies, host, port, telescopes, only_download):
             if zdf:  # Publikuj tylko niepuste rekordy
                 await data_publisher.publish_data(telescope, "zdf", zdf, host, port)
                 zdf_data_list.append(zdf)
-
-    # async with aiofiles.open('generated_downloads.json', 'w') as outfile:
-    #     await outfile.write(json.dumps(download_data_list, indent=4))
 
 def run():
     # os.environ['NUM_COPIES'] = '11'

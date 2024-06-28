@@ -52,6 +52,11 @@ class DataPublisher:
         return random_values
 
     @staticmethod
+    def dt_utcnow_array():
+        now = datetime.datetime.now(datetime.UTC)
+        return [now.year, now.month, now.day, now.hour, now.minute, now.second, now.microsecond]
+
+    @staticmethod
     def create_copies(original_data, random_values):
         copies = []
         for values in random_values:
@@ -89,10 +94,12 @@ class DataPublisher:
         download_copies = []
         for values in random_values:
             copy = json.loads(json.dumps(original_data))  # Deep copy
-            copy['data']['param']['filter'] = values["FILTER"]
-            copy['data']['param']['date_obs'] = values["DATE-OBS"]
-            copy['data']['param']['target_name'] = values["OBJECT_NAME"]
-            copy['data']['fits_id'] = values["id"]
+            copy['param']['filter'] = values["FILTER"]
+            copy['param']['date_obs'] = values["DATE-OBS"]
+            copy['param']['target_name'] = values["OBJECT_NAME"]
+            copy['telescope_id'] = values["TELESCOP"]
+            copy['ts'] = DataPublisher.dt_utcnow_array()
+            copy['fits_id'] = values["id"]
             download_copies.append(copy)
         return download_copies
 
