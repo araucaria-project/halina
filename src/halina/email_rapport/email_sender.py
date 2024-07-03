@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 class EmailSender:
-    EMAIL_APP_PASSWORD = 'dxnp hpnc hwnk nlpv'
+    EMAIL_APP_PASSWORD = 'zwdn hpgb yctm qiek'
     FROM_EMAIL = 'dchmal@akond.com'
     SMTP_HOST = 'smtp.gmail.com'
     SMTP_PORT = 587
