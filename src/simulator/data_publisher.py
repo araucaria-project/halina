@@ -119,7 +119,6 @@ class DataPublisher:
     async def publish_data(telescope, stream, data, host, port):
         messenger = Messenger()
         await messenger.open(host, port, wait=5)
-        logger.info(f"Publishing data to stream: {stream} for telescope: {telescope}")
         if stream == "download":
             publisher = messenger.get_publisher(f"tic.status.{telescope}.download")
         else:

@@ -7,6 +7,9 @@ import os
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+logging.getLogger('connection_nats').setLevel(logging.WARNING)
+logging.getLogger('messenger').setLevel(logging.WARNING)
+
 
 async def main(num_copies, host, port, telescopes, only_download):
     data_publisher = DataPublisher(telescopes)
