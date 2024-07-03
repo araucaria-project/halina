@@ -34,6 +34,7 @@ class TelescopeDtaCollector:
         self.count_fits_processed: int = 0
         self.malformed_raw_count: int = 0
         self.malformed_zdf_count: int = 0
+        self.malformed_download_count: int = 0
 
     @property
     def _fp_lock(self) -> asyncio.Lock:
@@ -62,7 +63,7 @@ class TelescopeDtaCollector:
         if main_key == "zdf":
             self.malformed_zdf_count += 1
         if main_key == "download":
-            self.malformed_zdf_count += 1
+            self.malformed_download_count += 1
 
     async def _read_data_from_download(self):
         stream = self._get_download()
@@ -90,6 +91,7 @@ class TelescopeDtaCollector:
                     jd = datetime_to_julian(obs)
                 except (ValueError, TypeError):
                     logger.info(f"The read record from stream {stream} has wrong format: JD")
+                    self._count_malformed_fits(stream.split('.')[-1])
                     continue
                 jd_yesterday_midday = datetime_to_julian(yesterday_midday)
                 # if the difference between the beginning of the observation and the date of observation is greater
