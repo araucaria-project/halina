@@ -215,8 +215,7 @@ class TelescopeDtaCollector:
                 for id_ in unchecked_ids:
                     pair = self._fits_pair.get(id_)  # pair is always !=Null
 
-                    # if dict has 2 key that mean we have all data to process
-                    logger.info(f"Pary {len(pair)}: {id_}")
+                    # if dict has _NUMBER_STREAMS key that mean we have all data to process
                     if len(pair) == TelescopeDtaCollector._NUMBER_STREAMS:
                         self._fits_pair.pop(id_)  # remove key
                         await self._process_pair(pair)
