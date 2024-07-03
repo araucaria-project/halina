@@ -15,11 +15,15 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 class TelescopeDtaCollector:
     _NUMBER_STREAMS = 3
 
+    _STR_NAME_RAW = "raw"
+    _STR_NAME_ZDF = "zdf"
+    _STR_NAME_DOWNLOAD = "download"
+
     def __init__(self, telescope_name: str = "", utc_offset: int = 0):
         self._utc_offset: int = utc_offset  # offset hour for time zones
         self._download_stream: str = f"tic.status.{telescope_name.strip()}.download"
-        self._data_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.raw"
-        self._fits_processed_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.zdf"
+        self._raw_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.raw"
+        self._zdf_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.zdf"
 
         # {fits_id: dict(raw: raw_fits, zdf: zdf_fits)}
         self._fits_pair: Dict[str, dict] = {}
@@ -48,25 +52,25 @@ class TelescopeDtaCollector:
             self._fits_pair_condition = asyncio.Condition(lock=self._fp_lock)
         return self._fits_pair_condition
 
-    def _get_download(self) -> str:
+    def _get_download_stream(self) -> str:
         return self._download_stream
 
-    def _get_stream(self) -> str:
-        return self._data_stream
+    def _get_raw_stream(self) -> str:
+        return self._raw_stream
 
-    def _get_fits_processed_stream(self) -> str:
-        return self._fits_processed_stream
+    def _get_zdf_stream(self) -> str:
+        return self._zdf_stream
 
     def _count_malformed_fits(self, main_key: str):
-        if main_key == "raw":
+        if main_key == TelescopeDtaCollector._STR_NAME_RAW:
             self.malformed_raw_count += 1
-        if main_key == "zdf":
+        if main_key == TelescopeDtaCollector._STR_NAME_ZDF:
             self.malformed_zdf_count += 1
-        if main_key == "download":
+        if main_key == TelescopeDtaCollector._STR_NAME_DOWNLOAD:
             self.malformed_download_count += 1
 
     async def _read_data_from_download(self):
-        stream = self._get_download()
+        stream = self._get_download_stream()
         yesterday_midday = DateUtils.yesterday_midday()
         reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
         try:
@@ -79,9 +83,8 @@ class TelescopeDtaCollector:
                     break
 
                 if not TelescopeDtaCollector._validate_download(data=data, stream=stream):
-                    # self._count_malformed_fits(main_key)
                     logger.info("Malformed download")
-                    self._count_malformed_fits(stream.split('.')[-1])
+                    self._count_malformed_fits(TelescopeDtaCollector._STR_NAME_DOWNLOAD)
                     continue
 
                 fits_id = data.get("fits_id")
@@ -91,7 +94,7 @@ class TelescopeDtaCollector:
                     jd = datetime_to_julian(obs)
                 except (ValueError, TypeError):
                     logger.info(f"The read record from stream {stream} has wrong format: JD")
-                    self._count_malformed_fits(stream.split('.')[-1])
+                    self._count_malformed_fits(TelescopeDtaCollector._STR_NAME_DOWNLOAD)
                     continue
                 jd_yesterday_midday = datetime_to_julian(yesterday_midday)
                 # if the difference between the beginning of the observation and the date of observation is greater
@@ -198,11 +201,12 @@ class TelescopeDtaCollector:
         return True
 
     async def collect_data(self):
-        logger.info(f"Start reading data from streams: {self._get_stream()} & {self._get_fits_processed_stream()} & {self._get_download()}")
+        logger.info(f"Start reading data from streams: {self._get_raw_stream()} & {self._get_zdf_stream()} "
+                    f"& {self._get_download_stream()}")
         self._finish_reading_streams = 0
         coros = [self._read_data_from_download(),
-                 self._read_data_from_stream(self._get_stream(), "raw"),
-                 self._read_data_from_stream(self._get_fits_processed_stream(), "zdf"),
+                 self._read_data_from_stream(self._get_raw_stream(), TelescopeDtaCollector._STR_NAME_RAW),
+                 self._read_data_from_stream(self._get_zdf_stream(), TelescopeDtaCollector._STR_NAME_ZDF),
                  self._evaluate_data()]
         result = await asyncio.gather(*coros, return_exceptions=True)
         logger.info(f"Finished reading data from streams. Read {self.count_fits} record")
@@ -229,11 +233,11 @@ class TelescopeDtaCollector:
     async def _process_pair(self, pair: dict):
         # todo nie rozpatrujemy sytuacji gdzie jest zdjęcie zdf bez raw
         try:
-            raw = pair.get("raw")
+            raw = pair.get(TelescopeDtaCollector._STR_NAME_RAW)
             if not raw:
                 # if pair don't have raw photo that mean is no photo
                 return
-            zdf = pair.get("zdf", None)
+            zdf = pair.get(TelescopeDtaCollector._STR_NAME_ZDF, None)
             if zdf is not None:
                 self.count_fits_processed += 1
 
