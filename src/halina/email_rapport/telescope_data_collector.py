@@ -61,6 +61,8 @@ class TelescopeDtaCollector:
             self.malformed_raw_count += 1
         if main_key == "zdf":
             self.malformed_zdf_count += 1
+        if main_key == "download":
+            self.malformed_zdf_count += 1
 
     async def _read_data_from_download(self):
         stream = self._get_download()
@@ -78,6 +80,7 @@ class TelescopeDtaCollector:
                 if not TelescopeDtaCollector._validate_download(data=data, stream=stream):
                     # self._count_malformed_fits(main_key)
                     logger.info("Malformed download")
+                    self._count_malformed_fits(stream.split('.')[-1])
                     continue
 
                 fits_id = data.get("fits_id")
@@ -151,6 +154,7 @@ class TelescopeDtaCollector:
                     jd = float(header.get("JD"))
                 except (ValueError, TypeError):
                     logger.info(f"The read record from stream {stream} has wrong format: JD")
+                    self._count_malformed_fits(main_key)
                     continue
                 jd_yesterday_midday = datetime_to_julian(yesterday_midday)
                 # if the difference between the beginning of the observation and the date of observation is greater
