@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Dict
+from typing import Dict, List
 from collections import defaultdict
 
 from serverish.messenger import Messenger
@@ -21,7 +21,7 @@ class EmailRapportService(Service):
         super().__init__()
         self._nats_messenger = Messenger()
         self._utc_offset: int = utc_offset
-        self._telescopes: list = GlobalConfig.get(GlobalConfig.TELESCOPES_NAME)
+        self._telescopes: List[str] = GlobalConfig.get(GlobalConfig.TELESCOPES_NAME)
 
     @staticmethod
     def __format_night() -> str:
@@ -35,7 +35,7 @@ class EmailRapportService(Service):
 
     @staticmethod
     def merge_data_objects(objects: Dict[str, DataObject]) -> Dict[str, DataObject]:
-        merged_objects = defaultdict(lambda: DataObject(name="", count=0, filters=set()))
+        merged_objects: Dict[str, DataObject] = defaultdict(lambda: DataObject(name="", count=0, filters=set()))
 
         for obj in objects.values():
             if merged_objects[obj.name].name == "":
@@ -45,25 +45,25 @@ class EmailRapportService(Service):
 
         return merged_objects
 
-    async def _main(self):
+    async def _main(self) -> None:
         try:
             await self._collect_data_and_send()
         except SendEmailException:
             pass
 
-    async def _on_start(self):
+    async def _on_start(self) -> None:
         pass
 
-    async def _on_stop(self):
+    async def _on_stop(self) -> None:
         pass
 
-    async def _collect_data_and_send(self):
+    async def _collect_data_and_send(self) -> None:
         if not self._nats_messenger.is_open:
             logger.warning(f"Can not send email rapport because NATS connection is not open")
             raise SendEmailException()
 
         logger.info(f"Collecting data from telescopes: {self._telescopes}")
-        telescopes = {}
+        telescopes: Dict[str, TelescopeDtaCollector] = {}
         if self._telescopes:
             for tel in self._telescopes:
                 telescopes[tel] = TelescopeDtaCollector(telescope_name=tel, utc_offset=self._utc_offset)
@@ -74,8 +74,8 @@ class EmailRapportService(Service):
                     f"Find fits: {[f"{name}: ({i.count_fits})" for name, i in telescopes.items()]}")
 
         # Prepare data for email
-        telescope_data = []
-        all_data_objects = defaultdict(lambda: DataObject(name="", count=0, filters=set()))
+        telescope_data: List[Dict[str, int]] = []
+        all_data_objects: Dict[str, DataObject] = defaultdict(lambda: DataObject(name="", count=0, filters=set()))
 
         for tel in self._telescopes:
             telescope_info = {
@@ -94,20 +94,25 @@ class EmailRapportService(Service):
 
         # Build and send email
         night = self.__format_night()
+        email_recipients: List[str] = GlobalConfig.get(GlobalConfig.EMAILS_TO)
 
-        email_builder = (EmailBuilder()
-                         .subject("Night Report")
-                         .night(night)
-                         .telescope_data(telescope_data)
-                         .data_objects(all_data_objects))
+        for email in email_recipients:
+            logger.info(f"\n\nEmail : {email}")
 
-        email_message = await email_builder.build()
-        email_sender = EmailSender("d.chmalu@gmail.com")
-        result = await email_sender.send(email_message)
-        if result:
-            logger.info("Mail sent successfully!")
-        else:
-            logger.error("Failed to send mail.")
+            email_builder = (EmailBuilder()
+                             .subject(f"Night Report - {night}")
+                             .night(night)
+                             .telescope_data(telescope_data)
+                             .data_objects(all_data_objects))
+
+            email_message = await email_builder.build()
+
+            email_sender = EmailSender(email)
+            result = await email_sender.send(email_message)
+            if result:
+                logger.info(f"Mail sent successfully to {email}!")
+            else:
+                logger.error(f"Failed to send mail to {email}.")
 
 
 class SendEmailException(Exception):
