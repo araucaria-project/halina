@@ -62,7 +62,8 @@ class TelescopeDtaCollector:
         if main_key == "zdf":
             self.malformed_zdf_count += 1
 
-    async def _read_data_from_download(self, stream: str):
+    async def _read_data_from_download(self):
+        stream = self._get_download()
         yesterday_midday = DateUtils.yesterday_midday()
         reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
         try:
@@ -113,7 +114,7 @@ class TelescopeDtaCollector:
             return False
         # ---------------------------- check date in header ----------------------------
         param = data.get("param")
-        if not param and not isinstance(param, dict):
+        if not param or not isinstance(param, dict):
             logger.info(f"The read record from stream {stream} has no field:: param")
             return False
         obs = param.get("date_obs")
@@ -176,7 +177,7 @@ class TelescopeDtaCollector:
             logger.info(f"The read record from stream {stream} has no field:: fits_id")
             return False
         content = data.get(main_key)
-        if not content and not isinstance(content, dict):
+        if not content or not isinstance(content, dict):
             logger.info(f"The read record from stream {stream} has no field: {main_key}")
             return False
         # ---------------------------- check date in header ----------------------------
@@ -193,7 +194,7 @@ class TelescopeDtaCollector:
     async def collect_data(self):
         logger.info(f"Start reading data from streams: {self._get_stream()} & {self._get_fits_processed_stream()} & {self._get_download()}")
         self._finish_reading_streams = 0
-        coros = [self._read_data_from_download(self._get_download()),
+        coros = [self._read_data_from_download(),
                  self._read_data_from_stream(self._get_stream(), "raw"),
                  self._read_data_from_stream(self._get_fits_processed_stream(), "zdf"),
                  self._evaluate_data()]
