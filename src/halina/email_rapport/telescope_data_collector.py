@@ -115,7 +115,7 @@ class TelescopeDtaCollector:
         if not fits_id:
             logger.info(f"The read record from stream {stream} has no field:: fits_id")
             return False
-        # ---------------------------- check date in param ----------------------------
+        # ---------------------------- check date in param -----------------------------
         param = data.get("param")
         if not param or not isinstance(param, dict):
             logger.info(f"The read record from stream {stream} has no field:: param")
