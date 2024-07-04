@@ -97,8 +97,6 @@ class EmailRapportService(Service):
         email_recipients: List[str] = GlobalConfig.get(GlobalConfig.EMAILS_TO)
 
         for email in email_recipients:
-            logger.info(f"\n\nEmail : {email}")
-
             email_builder = (EmailBuilder()
                              .subject(f"Night Report - {night}")
                              .night(night)

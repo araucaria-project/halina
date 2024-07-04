@@ -59,10 +59,9 @@ class GlobalConfig:
         SMTP_HOST: __ConfigVal("smtp.gmail.com", str),
         SMTP_PORT: __ConfigVal(587, int),
         FROM_EMAIL: __ConfigVal("dchmal@akond.com", str),
-        EMAIL_APP_PASSWORD: __ConfigVal("", str)
+        EMAIL_APP_PASSWORD: __ConfigVal("", str),
     }
-    __setters = [NATS_HOST, NATS_PORT, TELESCOPES_NAME, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT, FROM_EMAIL,
-                 EMAIL_APP_PASSWORD]
+    __setters = [NATS_HOST, NATS_PORT, TELESCOPES_NAME, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT, FROM_EMAIL, EMAIL_APP_PASSWORD]
 
     @staticmethod
     def get(name, default=None):

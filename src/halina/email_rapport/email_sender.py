@@ -9,21 +9,19 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 class EmailSender:
-    from_email = GlobalConfig.get(GlobalConfig.FROM_EMAIL)
-    smtp_host = GlobalConfig.get(GlobalConfig.SMTP_HOST)
-    smtp_port = GlobalConfig.get(GlobalConfig.SMTP_PORT)
-    email_app_password = GlobalConfig.get(GlobalConfig.EMAIL_APP_PASSWORD)
-
     def __init__(self, to_email: str):
         self.to_email: str = to_email
+        self.from_email = GlobalConfig.get(GlobalConfig.FROM_EMAIL)
+        self.smtp_host = GlobalConfig.get(GlobalConfig.SMTP_HOST)
+        self.smtp_port = GlobalConfig.get(GlobalConfig.SMTP_PORT)
+        self.email_app_password = GlobalConfig.get(GlobalConfig.EMAIL_APP_PASSWORD)
 
     async def send(self, message: MIMEMultipart) -> bool:
-        logger.info(self.email_app_password)
         if not self.email_app_password:
             logger.error("Email app password is required but not set.")
             raise ValueError("Email app password is required but not set.")
 
-        message["From"] = EmailSender.from_email
+        message["From"] = self.from_email
         message["To"] = self.to_email
 
         smtp: SMTP = SMTP(hostname=self.smtp_host, port=self.smtp_port, start_tls=True)
