@@ -45,29 +45,35 @@ class GlobalConfig:
     TELESCOPES_NAME = "TELESCOPES_NAME"
     EMAILS_TO = "EMAILS"
     TIMEZONE = "TIMEZONE"
+    SMTP_HOST = "SMTP_HOST"
+    SMTP_PORT = "SMTP_PORT"
+    FROM_EMAIL = "FROM_EMAIL"
+    EMAIL_APP_PASSWORD = "EMAIL_APP_PASSWORD"
 
     __conf: Dict[str, __ConfigVal] = {
         NATS_HOST: __ConfigVal("localhost", str),
         NATS_PORT: __ConfigVal(4222, int),
         TELESCOPES_NAME: __ConfigVal([], list),
         EMAILS_TO: __ConfigVal([], list),
-        TIMEZONE: __ConfigVal(0, int)
+        TIMEZONE: __ConfigVal(0, int),
+        SMTP_HOST: __ConfigVal("smtp.gmail.com", str),
+        SMTP_PORT: __ConfigVal(587, int),
+        FROM_EMAIL: __ConfigVal("dchmal@akond.com", str),
+        EMAIL_APP_PASSWORD: __ConfigVal("", str),
     }
-    __setters = [NATS_HOST, NATS_PORT, TELESCOPES_NAME, EMAILS_TO, TIMEZONE]
+    __setters = [NATS_HOST, NATS_PORT, TELESCOPES_NAME, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT, FROM_EMAIL, EMAIL_APP_PASSWORD]
 
-    @staticmethod
-    def get(name, default=None):
-        cv = GlobalConfig.__conf.get(name)
+    @classmethod
+    def get(cls, name, default=None):
+        cv = cls.__conf.get(name)
         if cv:
             return cv.val
         else:
             return default
 
-    @staticmethod
-    def set(name, value):
-        if name in GlobalConfig.__setters:
-            GlobalConfig.__conf.get(name).set_val(value)
+    @classmethod
+    def set(cls, name, value):
+        if name in cls.__setters:
+            cls.__conf.get(name).set_val(value)
         else:
             raise NameError("Name not accepted in set() method")
-
-
