@@ -13,12 +13,17 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 class TelescopeDtaCollector:
-    _NUMBER_STREAMS = 2
+    _NUMBER_STREAMS = 3
+
+    _STR_NAME_RAW = "raw"
+    _STR_NAME_ZDF = "zdf"
+    _STR_NAME_DOWNLOAD = "download"
 
     def __init__(self, telescope_name: str = "", utc_offset: int = 0):
         self._utc_offset: int = utc_offset  # offset hour for time zones
-        self._data_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.raw"
-        self._fits_processed_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.zdf"
+        self._download_stream: str = f"tic.status.{telescope_name.strip()}.download"
+        self._raw_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.raw"
+        self._zdf_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.zdf"
 
         # {fits_id: dict(raw: raw_fits, zdf: zdf_fits)}
         self._fits_pair: Dict[str, dict] = {}
@@ -33,6 +38,7 @@ class TelescopeDtaCollector:
         self.count_fits_processed: int = 0
         self.malformed_raw_count: int = 0
         self.malformed_zdf_count: int = 0
+        self.malformed_download_count: int = 0
 
     @property
     def _fp_lock(self) -> asyncio.Lock:
@@ -46,22 +52,88 @@ class TelescopeDtaCollector:
             self._fits_pair_condition = asyncio.Condition(lock=self._fp_lock)
         return self._fits_pair_condition
 
-    def _get_stream(self) -> str:
-        return self._data_stream
+    def _get_download_stream(self) -> str:
+        return self._download_stream
 
-    def _get_fits_processed_stream(self) -> str:
-        return self._fits_processed_stream
+    def _get_raw_stream(self) -> str:
+        return self._raw_stream
+
+    def _get_zdf_stream(self) -> str:
+        return self._zdf_stream
 
     def _count_malformed_fits(self, main_key: str):
-        if main_key == "raw":
+        if main_key == TelescopeDtaCollector._STR_NAME_RAW:
             self.malformed_raw_count += 1
-        if main_key == "zdf":
+        if main_key == TelescopeDtaCollector._STR_NAME_ZDF:
             self.malformed_zdf_count += 1
+        if main_key == TelescopeDtaCollector._STR_NAME_DOWNLOAD:
+            self.malformed_download_count += 1
+
+    async def _read_data_from_download(self):
+        stream = self._get_download_stream()
+        yesterday_midday = DateUtils.yesterday_midday()
+        reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
+        try:
+            await reader.open()
+            while True:
+                try:
+                    data, meta = await wait_for_psce(reader.read_next(), 2)
+                except asyncio.TimeoutError:
+                    logger.info(f"Stop waiting for new date in stream - stream is empty. {stream}")
+                    break
+
+                if not TelescopeDtaCollector._validate_download(data=data, stream=stream):
+                    logger.info("Malformed download")
+                    self._count_malformed_fits(TelescopeDtaCollector._STR_NAME_DOWNLOAD)
+                    continue
+
+                fits_id = data.get("fits_id")
+                param = data.get("param")
+                obs = param.get("date_obs")
+                try:
+                    jd = datetime_to_julian(obs)
+                except (ValueError, TypeError):
+                    logger.info(f"The read record from stream {stream} has wrong format: JD")
+                    self._count_malformed_fits(TelescopeDtaCollector._STR_NAME_DOWNLOAD)
+                    continue
+                jd_yesterday_midday = datetime_to_julian(yesterday_midday)
+                # if the difference between the beginning of the observation and the date of observation is greater
+                # than 1, it means that the day has passed and there is another night
+                if (jd - jd_yesterday_midday) >= 1:
+                    break
+                async with self._fp_condition:
+                    if self._fits_pair.get(fits_id, None) is None:
+                        self._fits_pair[fits_id] = {}
+                    self._fits_pair[fits_id]["download"] = data
+                    self._unchecked_ids.add(fits_id)
+                    self._fp_condition.notify_all()
+                await asyncio.sleep(0)
+        finally:
+            self._finish_reading_streams += 1
+            async with self._fp_condition:
+                self._fp_condition.notify_all()
+            await reader.close()
+
+    @staticmethod
+    def _validate_download(data: dict, stream: str) -> bool:
+        fits_id = data.get("fits_id")
+        if not fits_id:
+            logger.info(f"The read record from stream {stream} has no field:: fits_id")
+            return False
+        # ---------------------------- check date in param -----------------------------
+        param = data.get("param")
+        if not param or not isinstance(param, dict):
+            logger.info(f"The read record from stream {stream} has no field:: param")
+            return False
+        obs = param.get("date_obs")
+        if not obs:
+            logger.info(f"The read record from stream {stream} has no field:: date_obs")
+            return False
+        return True
 
     async def _read_data_from_stream(self, stream: str, main_key: str):
         yesterday_midday = DateUtils.yesterday_midday()
-        reader = get_reader(stream, deliver_policy='by_start_time',
-                            opt_start_time=yesterday_midday)
+        reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
         try:
             await reader.open()
             while True:
@@ -87,6 +159,7 @@ class TelescopeDtaCollector:
                     jd = float(header.get("JD"))
                 except (ValueError, TypeError):
                     logger.info(f"The read record from stream {stream} has wrong format: JD")
+                    self._count_malformed_fits(main_key)
                     continue
                 jd_yesterday_midday = datetime_to_julian(yesterday_midday)
                 # if the difference between the beginning of the observation and the date of observation is greater
@@ -113,7 +186,7 @@ class TelescopeDtaCollector:
             logger.info(f"The read record from stream {stream} has no field:: fits_id")
             return False
         content = data.get(main_key)
-        if not content and not isinstance(content, dict):
+        if not content or not isinstance(content, dict):
             logger.info(f"The read record from stream {stream} has no field: {main_key}")
             return False
         # ---------------------------- check date in header ----------------------------
@@ -128,10 +201,12 @@ class TelescopeDtaCollector:
         return True
 
     async def collect_data(self):
-        logger.info(f"Start reading data from streams: {self._get_stream()} & {self._get_fits_processed_stream()}")
+        logger.info(f"Start reading data from streams: {self._get_raw_stream()} & {self._get_zdf_stream()} "
+                    f"& {self._get_download_stream()}")
         self._finish_reading_streams = 0
-        coros = [self._read_data_from_stream(self._get_stream(), "raw"),
-                 self._read_data_from_stream(self._get_fits_processed_stream(), "zdf"),
+        coros = [self._read_data_from_download(),
+                 self._read_data_from_stream(self._get_raw_stream(), TelescopeDtaCollector._STR_NAME_RAW),
+                 self._read_data_from_stream(self._get_zdf_stream(), TelescopeDtaCollector._STR_NAME_ZDF),
                  self._evaluate_data()]
         result = await asyncio.gather(*coros, return_exceptions=True)
         logger.info(f"Finished reading data from streams. Read {self.count_fits} record")
@@ -146,7 +221,7 @@ class TelescopeDtaCollector:
                 for id_ in unchecked_ids:
                     pair = self._fits_pair.get(id_)  # pair is always !=Null
 
-                    # if dict has 2 key that mean we have all data to process
+                    # if dict has _NUMBER_STREAMS key that mean we have all data to process
                     if len(pair) == TelescopeDtaCollector._NUMBER_STREAMS:
                         self._fits_pair.pop(id_)  # remove key
                         await self._process_pair(pair)
@@ -158,11 +233,11 @@ class TelescopeDtaCollector:
     async def _process_pair(self, pair: dict):
         # todo nie rozpatrujemy sytuacji gdzie jest zdjęcie zdf bez raw
         try:
-            raw = pair.get("raw")
+            raw = pair.get(TelescopeDtaCollector._STR_NAME_RAW)
             if not raw:
                 # if pair don't have raw photo that mean is no photo
                 return
-            zdf = pair.get("zdf", None)
+            zdf = pair.get(TelescopeDtaCollector._STR_NAME_ZDF, None)
             if zdf is not None:
                 self.count_fits_processed += 1
 
