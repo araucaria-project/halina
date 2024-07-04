@@ -63,17 +63,17 @@ class GlobalConfig:
     }
     __setters = [NATS_HOST, NATS_PORT, TELESCOPES_NAME, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT, FROM_EMAIL, EMAIL_APP_PASSWORD]
 
-    @staticmethod
-    def get(name, default=None):
-        cv = GlobalConfig.__conf.get(name)
+    @classmethod
+    def get(cls, name, default=None):
+        cv = cls.__conf.get(name)
         if cv:
             return cv.val
         else:
             return default
 
-    @staticmethod
-    def set(name, value):
-        if name in GlobalConfig.__setters:
-            GlobalConfig.__conf.get(name).set_val(value)
+    @classmethod
+    def set(cls, name, value):
+        if name in cls.__setters:
+            cls.__conf.get(name).set_val(value)
         else:
             raise NameError("Name not accepted in set() method")
