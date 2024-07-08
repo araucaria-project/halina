@@ -35,7 +35,7 @@ class GlobalConfig:
             if isinstance(v, self.type) or (self.is_optional and v is None):
                 self.val = v
             else:
-                raise TypeError
+                raise TypeError(f"{v} is not of type {self.type}")
 
     APP_NAME = 'halina'
 
@@ -43,7 +43,7 @@ class GlobalConfig:
     NATS_HOST = "NATS_HOST"
     NATS_PORT = "NATS_PORT"
     TELESCOPES_NAME = "TELESCOPES_NAME"
-    EMAILS_TO = "EMAILS"
+    EMAILS_TO = "EMAILS_TO"
     TIMEZONE = "TIMEZONE"
     SMTP_HOST = "SMTP_HOST"
     SMTP_PORT = "SMTP_PORT"
@@ -74,6 +74,11 @@ class GlobalConfig:
     @classmethod
     def set(cls, name, value):
         if name in cls.__setters:
-            cls.__conf.get(name).set_val(value)
+            cv = cls.__conf.get(name)
+            try:
+                cv.set_val(value)
+            except TypeError as e:
+                print(f"Error setting {name}: {e} {type(value)}")
+                raise e
         else:
             raise NameError("Name not accepted in set() method")
