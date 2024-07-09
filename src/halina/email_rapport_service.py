@@ -70,8 +70,10 @@ class EmailRapportService(Service):
 
         coros = [i.collect_data() for i in telescopes.values()]
         await asyncio.gather(*coros, return_exceptions=True)
-        logger.info(f"Scanning stream for fits completed. "
-                    f"Find fits: {[f"{name}: ({i.count_fits})" for name, i in telescopes.items()]}")
+
+        logger.info(f"Scanning stream for fits completed.")
+        for name, i in telescopes.items():
+            logger.info(f"Find fits for {name}: {i.count_fits}")
 
         # Prepare data for email
         telescope_data: List[Dict[str, int]] = []
@@ -95,6 +97,9 @@ class EmailRapportService(Service):
         # Build and send email
         night = self.__format_night()
         email_recipients: List[str] = GlobalConfig.get(GlobalConfig.EMAILS_TO)
+
+        if len(email_recipients) == 0:
+            logger.info(f"No recipient specified.")
 
         for email in email_recipients:
             email_builder = (EmailBuilder()
