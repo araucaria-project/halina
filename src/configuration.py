@@ -75,10 +75,6 @@ class GlobalConfig:
     @classmethod
     def set(cls, name, value):
         if name in cls.__setters:
-            cv = cls.__conf.get(name)
-            try:
-                cv.set_val(value)
-            except TypeError as e:
-                raise e
+            cls.__conf.get(name).set_val(value)
         else:
             raise NameError("Name not accepted in set() method")
