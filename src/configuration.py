@@ -35,7 +35,8 @@ class GlobalConfig:
             if isinstance(v, self.type) or (self.is_optional and v is None):
                 self.val = v
             else:
-                raise TypeError
+                raise TypeError(f"a parameter of type {type(v)} was received and a parameter of type  "
+                                f"{self.type} was expected")
 
     APP_NAME = 'halina'
 
