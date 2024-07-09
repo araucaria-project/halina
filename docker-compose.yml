@@ -1,13 +1,13 @@
 version: '3.8'
 
 services:
-  app:
+  halina-app:
     build: .
-    ports:
-      - "5000:80"
+    depends_on:
+      - nats
     environment:
-      - NATS_HOST=${NATS_HOST}
-      - NATS_PORT=${NATS_PORT}
+      - NATS_HOST=nats
+      - NATS_PORT=4222
       - TELESCOPES_NAME=${TELESCOPES_NAME}
       - EMAILS_TO=${EMAILS_TO}
       - TIMEZONE=${TIMEZONE}
@@ -15,3 +15,13 @@ services:
       - SMTP_PORT=${SMTP_PORT}
       - FROM_EMAIL=${FROM_EMAIL}
       - EMAIL_APP_PASSWORD=${EMAIL_APP_PASSWORD}
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    networks:
+      - halina-net
+
+networks:
+  halina-net:
+    external: true
