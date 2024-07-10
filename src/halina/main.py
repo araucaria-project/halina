@@ -30,8 +30,8 @@ def set_single_setting(name: str, settings: dict, type_str: bool = True):
         try:
             if not type_str:
                 setting = json.loads(setting)
-        except ValueError:
-            logger.warning(f"Can not cast arg: {name}")
+        except ValueError as e:
+            logger.warning(f"Cannot cast arg: {name}, error: {e}")
         GlobalConfig.set(name, setting)
 
 
@@ -52,8 +52,7 @@ async def main_coroutine():
     nats_connection_handler_service = NatsConnectionService()
     email_rapport_service = EmailRapportService()
 
-    services = [nats_connection_handler_service,
-                email_rapport_service]
+    services = [nats_connection_handler_service, email_rapport_service]
     try:
         # start all services one by one
         for s in services:

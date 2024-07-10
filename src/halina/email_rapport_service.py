@@ -99,7 +99,7 @@ class EmailRapportService(Service):
         email_recipients: List[str] = GlobalConfig.get(GlobalConfig.EMAILS_TO)
 
         if len(email_recipients) == 0:
-            logger.info(f"No recipient specified.")
+            logger.info(f"No recipient specified. {email_recipients}")
 
         for email in email_recipients:
             email_builder = (EmailBuilder()
