@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  nats:
+    container_name: nats
+    image: nats:latest
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+      - "6222:6222"
+      - "1883:1883"
+    volumes:
+      - ../oca_nats_config/docker/nats/nats-store:/nats/jetstream
+      - ../oca_nats_config/docker/nats/nats-log:/nats/logs/
+      - ../oca_nats_config/docker/nats/nats.conf:/etc/nats/nats.conf
+    command: ["-c", "/etc/nats/nats.conf"]
+
+  halina-app:
+    build:
+      context: .
+    depends_on:
+      - nats
+    ports:
+      - "5000:80"
+    environment:
+      - NATS_HOST=nats
+      - NATS_PORT=4222
+      - TELESCOPES_NAME=${TELESCOPES_NAME}
+      - EMAILS=${EMAILS}
+      - TIMEZONE=${TIMEZONE}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - FROM_EMAIL=${FROM_EMAIL}
+      - EMAIL_APP_PASSWORD=${EMAIL_APP_PASSWORD}
