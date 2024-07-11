@@ -21,3 +21,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 services = "src.halina.main:main"
+tests = "tests.run_tests:main"
