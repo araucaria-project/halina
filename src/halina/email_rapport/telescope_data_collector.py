@@ -255,7 +255,6 @@ class TelescopeDtaCollector:
                     if filter_ is not None:
                         o.filters.add(filter_)
                     self.objects[obj_name] = o
-
             self.count_fits += 1
         except (KeyboardInterrupt, asyncio.CancelledError, asyncio.TimeoutError):
             raise
