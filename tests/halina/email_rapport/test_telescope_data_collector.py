@@ -1,7 +1,4 @@
 import unittest
-import asyncio
-from unittest.mock import AsyncMock, patch
-from halina.email_rapport.data_collector_classes.data_object import DataObject
 from halina.email_rapport.telescope_data_collector import TelescopeDtaCollector
 import json
 import copy
@@ -13,7 +10,7 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
 
     async def asyncSetUp(self):
         pass
-        # self.collector = TelescopeDtaCollector(telescope_name="test_telescope", utc_offset=0)
+        self.collector = TelescopeDtaCollector(telescope_name="test_telescope", utc_offset=0)
 
     async def test__validate_download(self) -> None:
         json_file_path = "tests/mock/download.json"
@@ -45,22 +42,22 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
             # Check invalid data
             invalid_fitsid = valid_data.copy()
             invalid_fitsid["no_fits_id"] = invalid_fitsid.pop("fits_id")
-            self.assertFalse(self.collector._validate_download(invalid_fitsid, "mock_stream"), "Invalid data should fail validation")
+            self.assertFalse(self.collector._validate_record(invalid_fitsid, "mock_stream", key), "Invalid data should fail validation")
 
             # Check invalid data
             invalid_key = valid_data.copy()
             invalid_key["no_key"] = invalid_key.pop(key)
-            self.assertFalse(self.collector._validate_download(invalid_key, "mock_stream"), "Invalid data should fail validation")
+            self.assertFalse(self.collector._validate_record(invalid_key, "mock_stream", key), "Invalid data should fail validation")
 
             # Check invalid data
             invalid_header = copy.deepcopy(valid_data)
             invalid_header[key]["no_header"] = invalid_header[key].pop("header")
-            self.assertFalse(self.collector._validate_download(invalid_header, "mock_stream"), "Invalid data should fail validation")
+            self.assertFalse(self.collector._validate_record(invalid_header, "mock_stream", key), "Invalid data should fail validation")
 
             # Check invalid data
             invalid_jd = copy.deepcopy(valid_data)
             invalid_jd[key]["header"]["no_JD"] = invalid_jd[key]["header"].pop("JD")
-            self.assertFalse(self.collector._validate_download(invalid_jd, "mock_stream"), "Invalid data should fail validation")
+            self.assertFalse(self.collector._validate_record(invalid_jd, "mock_stream", key), "Invalid data should fail validation")
 
     async def test__process_pair(self) -> None:
         # Load data from files
@@ -71,27 +68,79 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
         with open("tests/mock/zdf.json", 'r') as file:
             zdf_data = json.load(file)
 
-        # Combine data into a single dictionary
+        # Combine data into a single dictionary without raw
         not_raw_data = {
             "download": download_data,
             "zdf": zdf_data
         }
         await self.collector._process_pair(not_raw_data)
-        self.assertEqual(self.collector.count_fits, 0,"Valid data should pass validation and increase count_fits")
+        self.assertEqual(self.collector.count_fits, 0, "count_fits should be 0 when raw data is missing")
 
-        # Combine data into a single dictionary
+        # Combine data into a single dictionary with raw
         data = {
             "download": download_data,
             "raw": raw_data,
             "zdf": zdf_data
         }
         await self.collector._process_pair(data)
-        self.assertEqual(self.collector.count_fits_processed, 1, "Valid data should pass validation and increase count_fits_processed")
-        self.assertEqual(self.collector.count_fits, 1, "Valid data should pass validation and increase count_fits")
+        self.assertEqual(self.collector.count_fits_processed, 1, "count_fits_processed should be 1")
+        self.assertEqual(self.collector.count_fits, 1, "count_fits should be 1")
 
-        print(len(self.collector.objects))
-        for object in self.collector.objects:
-            print(f"count: {object.count}")
+        #TODO Check the counts of each object in the collector
+        # self.assertEqual(len(self.collector.objects), 1, "There should be exactly 1 object in the collector")
+        # for obj_name, obj in self.collector.objects.items():
+        #     print(f"Object: {obj_name}, Count: {obj.count}")
+        #     self.assertEqual(obj.count, 1, f"Object {obj_name} should have count 1")
+
+    async def test__count_malformed_fits(self):
+        # Test for raw data
+        self.collector._count_malformed_fits(TelescopeDtaCollector._STR_NAME_RAW)
+        self.assertEqual(self.collector.malformed_raw_count, 1, "malformed_raw_count should be 1 after counting one malformed raw fit")
+
+        # Test for zdf data
+        self.collector._count_malformed_fits(TelescopeDtaCollector._STR_NAME_ZDF)
+        self.assertEqual(self.collector.malformed_zdf_count, 1, "malformed_zdf_count should be 1 after counting one malformed zdf fit")
+
+        # Test for download data
+        self.collector._count_malformed_fits(TelescopeDtaCollector._STR_NAME_DOWNLOAD)
+        self.assertEqual(self.collector.malformed_download_count, 1, "malformed_download_count should be 1 after counting one malformed download fit")
+
+    # @patch('halina.email_rapport.telescope_data_collector.TelescopeDtaCollector._process_pair', new_callable=AsyncMock)
+    # async def test__evaluate_data(self, mock_process_pair):
+    #     # Ustawienie testu
+    #     self.collector._fits_pair = {
+    #         "id1": {"raw": "data_raw", "zdf": "data_zdf", "download": "data_download"},
+    #         "id2": {"raw": "data_raw"}
+    #     }
+    #     self.collector._unchecked_ids = {"id1", "id2"}
+    #     self.collector._finish_reading_streams = 1  # Mniej niż _NUMBER_STREAMS
+    #
+    #     print(f"Initial _fits_pair: {self.collector._fits_pair}")
+    #     print(f"Initial _unchecked_ids: {self.collector._unchecked_ids}")
+    #
+    #     # Uruchom metodę, aby przetestować zachowanie, gdy nie wszystkie strumienie są zakończone
+    #     task = asyncio.create_task(self.collector._evaluate_data())
+    #     await asyncio.sleep(0.1)
+    #
+    #     # Symulacja zakończenia wszystkich strumieni
+    #     self.collector._finish_reading_streams = 3
+    #     async with self.collector._fp_condition:
+    #         self.collector._fp_condition.notify_all()
+    #
+    #     await task
+    #
+    #     # Asercje
+    #     print(f"Current _fits_pair: {self.collector._fits_pair}")
+    #     print(f"Current _unchecked_ids: {self.collector._unchecked_ids}")
+    #
+    #     # Upewnij się, że odpowiednie pary zostały przetworzone
+    #     mock_process_pair.assert_any_await(self.collector._fits_pair.get("id1", {}))
+    #     mock_process_pair.assert_any_await(self.collector._fits_pair.get("id2", {}))
+    #
+    #     # Upewnij się, że _unchecked_ids jest zresetowane, a pozostałe pary zostały przetworzone
+    #     self.assertEqual(self.collector._unchecked_ids, set())
+    #     self.assertEqual(mock_process_pair.await_count, 2)
+
 
 if __name__ == '__main__':
     unittest.main()

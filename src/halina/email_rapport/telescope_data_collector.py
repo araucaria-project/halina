@@ -220,20 +220,25 @@ class TelescopeDtaCollector:
                 self._unchecked_ids = set()  # reset ids
                 for id_ in unchecked_ids:
                     pair = self._fits_pair.get(id_)  # pair is always !=Null
+                    logger.info(f"Evaluating pair for id: {id_}, pair: {pair}")
 
                     # if dict has _NUMBER_STREAMS key that mean we have all data to process
                     if len(pair) == TelescopeDtaCollector._NUMBER_STREAMS:
                         self._fits_pair.pop(id_)  # remove key
+                        logger.info(f"Processing pair for id: {id_}")
                         await self._process_pair(pair)
             # process not completed fits pair (pair = raw + zdf)
             for id_, pair in self._fits_pair.items():
+                logger.info(f"Processing remaining pair for id: {id_}, pair: {pair}")
                 await self._process_pair(pair)
             self._fits_pair = {}  # clear pairs
+            logger.info(f"Final _fits_pair: {self._fits_pair}")
 
     async def _process_pair(self, pair: dict):
         # todo nie rozpatrujemy sytuacji gdzie jest zdjęcie zdf bez raw
         try:
             raw = pair.get(TelescopeDtaCollector._STR_NAME_RAW)
+            logger.info(f"\n\n {raw} \n\n")
             if not raw:
                 # if pair don't have raw photo that mean is no photo
                 return
@@ -243,21 +248,27 @@ class TelescopeDtaCollector:
 
             objs = raw.get("objects", {})
             filter_ = raw.get("header", {}).get("FILTER", None)
+            logger.info(f"Processing objects: {objs}")
             for k, v in objs.items():
                 obj_name = k
                 o = self.objects.get(obj_name, None)
                 if o is not None:
+                    logger.info(f"Object {obj_name} found, current count: {o.count}")
                     o.count += 1
                     if filter_ is not None:
                         o.filters.add(filter_)  # add filter if not exist
                 else:
+                    logger.info(f"Object {obj_name} not found, creating new DataObject")
                     o = DataObject(name=obj_name, count=1)
                     if filter_ is not None:
                         o.filters.add(filter_)
                     self.objects[obj_name] = o
+                logger.info(f"Object {obj_name} count updated to: {o.count}")
             self.count_fits += 1
+            logger.info(f"Finished processing pair. Total fits count: {self.count_fits}")
         except (KeyboardInterrupt, asyncio.CancelledError, asyncio.TimeoutError):
             raise
         except Exception as e:
             logger.error(f"Error when extracting data from record: {e}")
             self.malformed_raw_count += 1
+

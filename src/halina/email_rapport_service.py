@@ -24,7 +24,7 @@ class EmailRapportService(Service):
         self._telescopes: List[str] = GlobalConfig.get(GlobalConfig.TELESCOPES_NAME)
 
     @staticmethod
-    def __format_night() -> str:
+    def _format_night() -> str:
         yesterday_midday = DateUtils.yesterday_midday()
         today_midday = DateUtils.today_midday()
 
@@ -95,7 +95,7 @@ class EmailRapportService(Service):
                 all_data_objects[key].filters.update(value.filters)
 
         # Build and send email
-        night = self.__format_night()
+        night = self._format_night()
         email_recipients: List[str] = GlobalConfig.get(GlobalConfig.EMAILS_TO)
 
         if len(email_recipients) == 0:
