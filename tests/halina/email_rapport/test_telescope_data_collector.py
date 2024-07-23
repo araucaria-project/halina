@@ -2,18 +2,25 @@ import unittest
 from halina.email_rapport.telescope_data_collector import TelescopeDtaCollector
 import json
 import copy
+import os
 
 
 class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.collector = TelescopeDtaCollector(telescope_name="test_telescope", utc_offset=0)
+        self.test_dir = os.path.dirname(__file__)
+        self.mock_dir = os.path.join(self.test_dir, '..', '..', 'mock')
 
     async def asyncSetUp(self):
-        pass
         self.collector = TelescopeDtaCollector(telescope_name="test_telescope", utc_offset=0)
+        self.test_dir = os.path.dirname(__file__)
+        self.mock_dir = os.path.join(self.test_dir, '..', '..', 'mock')
+
+    def _get_test_file_path(self, relative_path):
+        return os.path.join(self.mock_dir, relative_path)
 
     async def test__validate_download(self) -> None:
-        json_file_path = "tests/mock/download.json"
+        json_file_path = self._get_test_file_path('download.json')
         with open(json_file_path, 'r') as file:
             valid_data = json.load(file)
 
@@ -31,7 +38,10 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.collector._validate_download(invalid_dateobs, "mock_stream"), "Invalid data should fail validation")
 
     async def test__validate_record(self) -> None:
-        json_files = {"raw": "tests/mock/raw.json", "zdf": "tests/mock/zdf.json"}
+        json_files = {
+            "raw": self._get_test_file_path('raw.json'),
+            "zdf": self._get_test_file_path('zdf.json')
+        }
         for key, json_file in json_files.items():
             with open(json_file, 'r') as file:
                 valid_data = json.load(file)
@@ -61,11 +71,15 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
 
     async def test__process_pair(self) -> None:
         # Load data from files
-        with open("tests/mock/download.json", 'r') as file:
+        download_path = self._get_test_file_path('download.json')
+        raw_path = self._get_test_file_path('raw.json')
+        zdf_path = self._get_test_file_path('zdf.json')
+
+        with open(download_path, 'r') as file:
             download_data = json.load(file)
-        with open("tests/mock/raw.json", 'r') as file:
+        with open(raw_path, 'r') as file:
             raw_data = json.load(file)
-        with open("tests/mock/zdf.json", 'r') as file:
+        with open(zdf_path, 'r') as file:
             zdf_data = json.load(file)
 
         # Combine data into a single dictionary without raw
@@ -86,7 +100,7 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.collector.count_fits_processed, 1, "count_fits_processed should be 1")
         self.assertEqual(self.collector.count_fits, 1, "count_fits should be 1")
 
-        #TODO Check the counts of each object in the collector
+        # TODO Check the counts of each object in the collector
         # self.assertEqual(len(self.collector.objects), 1, "There should be exactly 1 object in the collector")
         # for obj_name, obj in self.collector.objects.items():
         #     print(f"Object: {obj_name}, Count: {obj.count}")
