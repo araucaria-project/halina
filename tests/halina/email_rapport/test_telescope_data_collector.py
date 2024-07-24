@@ -1,26 +1,21 @@
 import unittest
+from unittest.mock import patch, AsyncMock
+import asyncio
 from halina.email_rapport.telescope_data_collector import TelescopeDtaCollector
 import json
 import copy
-import os
+import definitions
 
 
 class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.collector = TelescopeDtaCollector(telescope_name="test_telescope", utc_offset=0)
-        self.test_dir = os.path.dirname(__file__)
-        self.mock_dir = os.path.join(self.test_dir, '..', '..', 'mock')
 
     async def asyncSetUp(self):
         self.collector = TelescopeDtaCollector(telescope_name="test_telescope", utc_offset=0)
-        self.test_dir = os.path.dirname(__file__)
-        self.mock_dir = os.path.join(self.test_dir, '..', '..', 'mock')
-
-    def _get_test_file_path(self, relative_path):
-        return os.path.join(self.mock_dir, relative_path)
 
     async def test__validate_download(self) -> None:
-        json_file_path = self._get_test_file_path('download.json')
+        json_file_path = definitions.DOWNLOAD_JSON
         with open(json_file_path, 'r') as file:
             valid_data = json.load(file)
 
@@ -39,8 +34,8 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
 
     async def test__validate_record(self) -> None:
         json_files = {
-            "raw": self._get_test_file_path('raw.json'),
-            "zdf": self._get_test_file_path('zdf.json')
+            "raw": definitions.RAW_JSON,
+            "zdf": definitions.ZDF_JSON
         }
         for key, json_file in json_files.items():
             with open(json_file, 'r') as file:
@@ -71,9 +66,9 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
 
     async def test__process_pair(self) -> None:
         # Load data from files
-        download_path = self._get_test_file_path('download.json')
-        raw_path = self._get_test_file_path('raw.json')
-        zdf_path = self._get_test_file_path('zdf.json')
+        download_path = definitions.DOWNLOAD_JSON
+        raw_path = definitions.RAW_JSON
+        zdf_path = definitions.ZDF_JSON
 
         with open(download_path, 'r') as file:
             download_data = json.load(file)
@@ -119,41 +114,35 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
         self.collector._count_malformed_fits(TelescopeDtaCollector._STR_NAME_DOWNLOAD)
         self.assertEqual(self.collector.malformed_download_count, 1, "malformed_download_count should be 1 after counting one malformed download fit")
 
-    # @patch('halina.email_rapport.telescope_data_collector.TelescopeDtaCollector._process_pair', new_callable=AsyncMock)
-    # async def test__evaluate_data(self, mock_process_pair):
-    #     # Ustawienie testu
-    #     self.collector._fits_pair = {
-    #         "id1": {"raw": "data_raw", "zdf": "data_zdf", "download": "data_download"},
-    #         "id2": {"raw": "data_raw"}
-    #     }
-    #     self.collector._unchecked_ids = {"id1", "id2"}
-    #     self.collector._finish_reading_streams = 1  # Mniej niż _NUMBER_STREAMS
-    #
-    #     print(f"Initial _fits_pair: {self.collector._fits_pair}")
-    #     print(f"Initial _unchecked_ids: {self.collector._unchecked_ids}")
-    #
-    #     # Uruchom metodę, aby przetestować zachowanie, gdy nie wszystkie strumienie są zakończone
-    #     task = asyncio.create_task(self.collector._evaluate_data())
-    #     await asyncio.sleep(0.1)
-    #
-    #     # Symulacja zakończenia wszystkich strumieni
-    #     self.collector._finish_reading_streams = 3
-    #     async with self.collector._fp_condition:
-    #         self.collector._fp_condition.notify_all()
-    #
-    #     await task
-    #
-    #     # Asercje
-    #     print(f"Current _fits_pair: {self.collector._fits_pair}")
-    #     print(f"Current _unchecked_ids: {self.collector._unchecked_ids}")
-    #
-    #     # Upewnij się, że odpowiednie pary zostały przetworzone
-    #     mock_process_pair.assert_any_await(self.collector._fits_pair.get("id1", {}))
-    #     mock_process_pair.assert_any_await(self.collector._fits_pair.get("id2", {}))
-    #
-    #     # Upewnij się, że _unchecked_ids jest zresetowane, a pozostałe pary zostały przetworzone
-    #     self.assertEqual(self.collector._unchecked_ids, set())
-    #     self.assertEqual(mock_process_pair.await_count, 2)
+    @patch('halina.email_rapport.telescope_data_collector.TelescopeDtaCollector._process_pair', new_callable=AsyncMock)
+    async def test__evaluate_data(self, mock_process_pair):
+        self.collector._fits_pair = {
+            "id1": {"raw": "data_raw", "zdf": "data_zdf", "download": "data_download"},
+            "id2": {"raw": "data_raw"}
+        }
+        self.collector._unchecked_ids = {"id1", "id2"}
+        self.collector._finish_reading_streams = 1  # Mniej niż _NUMBER_STREAMS
+
+        task = asyncio.create_task(self.collector._evaluate_data())
+        await asyncio.sleep(0.1)
+
+        # Symulacja zakończenia wszystkich strumieni
+        self.collector._finish_reading_streams = 3
+        async with self.collector._fp_condition:
+            self.collector._fp_condition.notify_all()
+
+        await task
+
+        # Upewnienie się że odpowiednie pary zostały przetworzone
+        expected_calls = [
+            unittest.mock.call({"raw": "data_raw", "zdf": "data_zdf", "download": "data_download"}),
+            unittest.mock.call({"raw": "data_raw"})
+        ]
+        mock_process_pair.assert_has_awaits(expected_calls, any_order=True)
+
+        # Upewnij się, że _unchecked_ids jest zresetowane, a pozostałe pary zostały przetworzone
+        self.assertEqual(self.collector._unchecked_ids, set())
+        self.assertEqual(mock_process_pair.await_count, 2)
 
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ class TestEmailSender(unittest.IsolatedAsyncioTestCase):
     @patch('halina.email_rapport.email_sender.GlobalConfig.get')
     @patch('halina.email_rapport.email_sender.SMTP')
     async def test_send_email_success(self, mock_smtp_class, mock_global_config_get):
-        # Setup mock
+        # Setup resources
         mock_smtp = mock_smtp_class.return_value
         mock_smtp.__aenter__.return_value = mock_smtp
         mock_smtp.login = AsyncMock()
@@ -35,7 +35,7 @@ class TestEmailSender(unittest.IsolatedAsyncioTestCase):
     @patch('halina.email_rapport.email_sender.GlobalConfig.get')
     @patch('halina.email_rapport.email_sender.SMTP')
     async def test_send_email_failure(self, mock_smtp_class, mock_global_config_get):
-        # Setup mock
+        # Setup resources
         mock_smtp = mock_smtp_class.return_value
         mock_smtp.__aenter__.return_value = mock_smtp
         mock_smtp.login = AsyncMock()
