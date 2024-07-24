@@ -7,6 +7,6 @@ WORKDIR ./
 COPY . /.
 
 RUN pip install poetry
-RUN poetry install
-
-CMD ["poetry", "run", "services"]
+RUN ["poetry", "install"]
+STOPSIGNAL SIGINT
+ENTRYPOINT ["poetry", "run", "services"]
