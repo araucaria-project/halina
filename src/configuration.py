@@ -50,6 +50,7 @@ class GlobalConfig:
     SMTP_PORT = "SMTP_PORT"
     FROM_EMAIL = "FROM_EMAIL"
     EMAIL_APP_PASSWORD = "EMAIL_APP_PASSWORD"
+    SEND_AT = "SEND_AT"
 
     __conf: Dict[str, __ConfigVal] = {
         NATS_HOST: __ConfigVal("localhost", str),
@@ -61,8 +62,10 @@ class GlobalConfig:
         SMTP_PORT: __ConfigVal(587, int),
         FROM_EMAIL: __ConfigVal("dchmal@akond.com", str),
         EMAIL_APP_PASSWORD: __ConfigVal("", str),
+        SEND_AT: __ConfigVal(14, int),  # at witch hour will be sent email
     }
-    __setters = [NATS_HOST, NATS_PORT, TELESCOPES_NAME, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT, FROM_EMAIL, EMAIL_APP_PASSWORD]
+    __setters = [NATS_HOST, NATS_PORT, TELESCOPES_NAME, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT, FROM_EMAIL,
+                 EMAIL_APP_PASSWORD, SEND_AT]
 
     @classmethod
     def get(cls, name, default=None):
