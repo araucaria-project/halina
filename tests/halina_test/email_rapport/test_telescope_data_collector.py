@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest.mock import patch, AsyncMock
 import asyncio
@@ -15,7 +16,7 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
         self.collector = TelescopeDtaCollector(telescope_name="test_telescope", utc_offset=0)
 
     async def test__validate_download(self) -> None:
-        json_file_path = definitions.DOWNLOAD_JSON
+        json_file_path = os.path.join(definitions.TEST_RESOURCES_DIR, 'download.json')
         with open(json_file_path, 'r') as file:
             valid_data = json.load(file)
 
@@ -34,8 +35,8 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
 
     async def test__validate_record(self) -> None:
         json_files = {
-            "raw": definitions.RAW_JSON,
-            "zdf": definitions.ZDF_JSON
+            "raw": os.path.join(definitions.TEST_RESOURCES_DIR, 'raw.json'),
+            "zdf": os.path.join(definitions.TEST_RESOURCES_DIR, 'zdf.json')
         }
         for key, json_file in json_files.items():
             with open(json_file, 'r') as file:
@@ -66,9 +67,9 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
 
     async def test__process_pair(self) -> None:
         # Load data from files
-        download_path = definitions.DOWNLOAD_JSON
-        raw_path = definitions.RAW_JSON
-        zdf_path = definitions.ZDF_JSON
+        download_path = os.path.join(definitions.TEST_RESOURCES_DIR, 'download.json')
+        raw_path = os.path.join(definitions.TEST_RESOURCES_DIR, 'raw.json')
+        zdf_path = os.path.join(definitions.TEST_RESOURCES_DIR, 'zdf.json')
 
         with open(download_path, 'r') as file:
             download_data = json.load(file)

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, AsyncMock
 from datetime import datetime
-from halina.email_rapport_service import EmailRapportService, SendEmailException
+from halina.email_rapport_service import SendEmailException, EmailRapportService
 from halina.email_rapport.data_collector_classes.data_object import DataObject
 
 
