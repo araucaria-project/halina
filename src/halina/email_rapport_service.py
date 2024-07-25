@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 from typing import Dict, List
 from collections import defaultdict
@@ -22,6 +23,7 @@ class EmailRapportService(Service):
         self._nats_messenger = Messenger()
         self._utc_offset: int = utc_offset
         self._telescopes: List[str] = GlobalConfig.get(GlobalConfig.TELESCOPES_NAME)
+        self._send_at_time = datetime.time(GlobalConfig.get(GlobalConfig.SEND_AT), 0)
 
     @staticmethod
     def __format_night() -> str:
@@ -47,9 +49,29 @@ class EmailRapportService(Service):
 
     async def _main(self) -> None:
         try:
-            await self._collect_data_and_send()
-        except SendEmailException:
-            pass
+            today_date = datetime.datetime.now(datetime.UTC).date()
+            send_at_time = datetime.datetime.combine(today_date, self._send_at_time, tzinfo=datetime.UTC)
+            while True:
+                now = datetime.datetime.now(datetime.UTC)
+                await asyncio.sleep((send_at_time-now).total_seconds())
+
+                try:
+                    start = datetime.datetime.now(datetime.UTC)
+                    logger.debug(f"Start sending emails today: {now.date()}")
+                    await self._collect_data_and_send()
+                    stop = datetime.datetime.now(datetime.UTC)
+                    logger.debug(f"Finish sending emails today: {now.date()}")
+                    working_time_minutes = (stop - start).total_seconds()/60
+                    logger.info(f"Email sender finish sending message today: {now.date()} . "
+                                f"Proses takes {working_time_minutes}")
+                except SendEmailException as e:
+                    logger.error(f"Email sender service cath error: {e}")
+
+                send_at_time = send_at_time + datetime.timedelta(days=1)
+
+        except asyncio.CancelledError:
+            logger.info(f"Email sender service was stopped")
+            raise
 
     async def _on_start(self) -> None:
         pass
