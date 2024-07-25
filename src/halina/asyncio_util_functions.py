@@ -1,3 +1,12 @@
+"""
+Asyncio Utility Functions module.
+
+This module provides utility functions to handle specific asyncio tasks.
+
+Functions:
+    - wait_for_psce(fut, timeout): Prevents silent cancel error by ensuring proper cancellation of tasks.
+"""
+
 import asyncio
 from contextlib import suppress
 

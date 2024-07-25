@@ -1,3 +1,12 @@
+"""
+Data Object module.
+
+This module defines the DataObject class which represents a data structure for holding telescope data.
+
+Classes:
+    - DataObject: Represents a data structure for holding telescope data.
+"""
+
 import dataclasses
 import logging
 from typing import List, Set

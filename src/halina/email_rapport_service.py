@@ -1,3 +1,14 @@
+"""
+Email Rapport Service module.
+
+This module defines the EmailRapportService class which collects data from telescopes
+and sends email reports.
+
+Classes:
+    - EmailRapportService: Collects data and sends email reports.
+    - SendEmailException: Custom exception for email sending errors.
+"""
+
 import asyncio
 import datetime
 import logging
@@ -5,7 +16,6 @@ from typing import Dict, List
 from collections import defaultdict
 
 from serverish.messenger import Messenger
-
 from configuration import GlobalConfig
 from halina.email_rapport.email_builder import EmailBuilder
 from halina.email_rapport.email_sender import EmailSender
@@ -18,7 +28,23 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 class EmailRapportService(Service):
+    """
+    Service to collect data from telescopes and send email reports.
+
+    Attributes:
+        _nats_messenger (Messenger): Messenger instance for NATS communication.
+        _utc_offset (int): UTC offset for time calculations.
+        _telescopes (List[str]): List of telescope names.
+        _send_at_time (datetime.time): Time to send the email report.
+    """
+
     def __init__(self, utc_offset: int = 0):
+        """
+        Initializes the EmailRapportService.
+
+        Args:
+            utc_offset (int): UTC offset for time calculations. Defaults to 0.
+        """
         super().__init__()
         self._nats_messenger = Messenger()
         self._utc_offset: int = utc_offset
@@ -27,6 +53,12 @@ class EmailRapportService(Service):
 
     @staticmethod
     def __format_night() -> str:
+        """
+        Formats the night string for the report.
+
+        Returns:
+            str: Formatted night string.
+        """
         yesterday_midday = DateUtils.yesterday_midday()
         today_midday = DateUtils.today_midday()
 
@@ -37,6 +69,15 @@ class EmailRapportService(Service):
 
     @staticmethod
     def merge_data_objects(objects: Dict[str, DataObject]) -> Dict[str, DataObject]:
+        """
+        Merges multiple DataObject instances into a single dictionary.
+
+        Args:
+            objects (Dict[str, DataObject]): Dictionary of DataObject instances.
+
+        Returns:
+            Dict[str, DataObject]: Merged dictionary of DataObject instances.
+        """
         merged_objects: Dict[str, DataObject] = defaultdict(lambda: DataObject(name="", count=0, filters=set()))
 
         for obj in objects.values():
@@ -48,6 +89,9 @@ class EmailRapportService(Service):
         return merged_objects
 
     async def _main(self) -> None:
+        """
+        Main coroutine that handles the scheduling and sending of email reports.
+        """
         try:
             today_date = datetime.datetime.now(datetime.UTC).date()
             send_at_time = datetime.datetime.combine(today_date, self._send_at_time, tzinfo=datetime.UTC)
@@ -62,24 +106,36 @@ class EmailRapportService(Service):
                     stop = datetime.datetime.now(datetime.UTC)
                     logger.debug(f"Finish sending emails today: {now.date()}")
                     working_time_minutes = (stop - start).total_seconds()/60
-                    logger.info(f"Email sender finish sending message today: {now.date()} . "
-                                f"Proses takes {working_time_minutes}")
+                    logger.info(f"Email sender finished sending message today: {now.date()}. "
+                                f"Process took {working_time_minutes} minutes")
                 except SendEmailException as e:
-                    logger.error(f"Email sender service cath error: {e}")
+                    logger.error(f"Email sender service caught error: {e}")
 
                 send_at_time = send_at_time + datetime.timedelta(days=1)
 
         except asyncio.CancelledError:
-            logger.info(f"Email sender service was stopped")
+            logger.info("Email sender service was stopped")
             raise
 
     async def _on_start(self) -> None:
+        """
+        Action to perform on service start.
+        """
         pass
 
     async def _on_stop(self) -> None:
+        """
+        Action to perform on service stop.
+        """
         pass
 
     async def _collect_data_and_send(self) -> None:
+        """
+        Collects data from telescopes and sends email reports.
+
+        Raises:
+            SendEmailException: If the NATS connection is not open.
+        """
         if not self._nats_messenger.is_open:
             logger.warning(f"Can not send email rapport because NATS connection is not open")
             raise SendEmailException()
@@ -121,7 +177,7 @@ class EmailRapportService(Service):
         email_recipients: List[str] = GlobalConfig.get(GlobalConfig.EMAILS_TO)
 
         if len(email_recipients) == 0:
-            logger.info(f"No recipient specified.")
+            logger.info("No recipient specified.")
 
         for email in email_recipients:
             email_builder = (EmailBuilder()
@@ -141,4 +197,7 @@ class EmailRapportService(Service):
 
 
 class SendEmailException(Exception):
+    """
+    Exception raised for errors in the email sending process.
+    """
     pass
