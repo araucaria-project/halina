@@ -1,3 +1,17 @@
+"""
+Main module.
+
+This module contains the main entry point for the application, which reads configurations,
+initializes services, and handles the main asynchronous event loop.
+
+Functions:
+    - get_setting(name, settings): Retrieves a setting from the environment or given settings.
+    - set_single_setting(name, settings, type_str): Sets a configuration setting.
+    - read_configuration(**kwargs): Reads the configuration and sets the global settings.
+    - main_coroutine(): Main coroutine that starts and stops the services.
+    - main(**kwargs): Main entry point for the application.
+"""
+
 import asyncio
 import json
 import logging
@@ -16,6 +30,16 @@ logger = logging.getLogger('main')
 
 
 def get_setting(name: str, settings: dict):
+    """
+    Retrieves a setting from the environment or given settings.
+
+    Args:
+        name (str): The name of the setting.
+        settings (dict): The settings dictionary.
+
+    Returns:
+        The value of the setting.
+    """
     if name in settings:
         return settings.get(name, None)
     env = os.getenv(name)
@@ -25,17 +49,31 @@ def get_setting(name: str, settings: dict):
 
 
 def set_single_setting(name: str, settings: dict, type_str: bool = True):
+    """
+    Sets a configuration setting.
+
+    Args:
+        name (str): The name of the setting.
+        settings (dict): The settings dictionary.
+        type_str (bool): Whether to treat the setting as a string. Defaults to True.
+    """
     setting = get_setting(name, settings)
     if setting is not None:
         try:
             if not type_str:
                 setting = json.loads(setting)
         except ValueError:
-            logger.warning(f"Can not cast arg: {name}")
+            logger.warning(f"Cannot cast arg: {name}")
         GlobalConfig.set(name, setting)
 
 
 def read_configuration(**kwargs):
+    """
+    Reads the configuration and sets the global settings.
+
+    Args:
+        **kwargs: Additional keyword arguments for settings.
+    """
     set_single_setting(GlobalConfig.NATS_PORT, kwargs, False)
     set_single_setting(GlobalConfig.NATS_HOST, kwargs)
     set_single_setting(GlobalConfig.TELESCOPES_NAME, kwargs, False)
@@ -49,6 +87,9 @@ def read_configuration(**kwargs):
 
 
 async def main_coroutine():
+    """
+    Main coroutine that starts and stops the services.
+    """
     # Nats connection service
     nats_connection_handler_service = NatsConnectionService()
     email_rapport_service = EmailRapportService()
@@ -70,6 +111,12 @@ async def main_coroutine():
 
 
 def main(**kwargs):
+    """
+    Main entry point for the application.
+
+    Args:
+        **kwargs: Additional keyword arguments for settings.
+    """
     if not kwargs:
         kwargs = dict(arg.split('=') for arg in sys.argv[0:] if len(arg.split('=')) == 2)
     read_configuration(**kwargs)
@@ -106,9 +153,9 @@ def main(**kwargs):
                 task.cancel()
             loop.run_until_complete(asyncio.gather(*all_tasks, return_exceptions=True))
             if not asyncio.all_tasks(loop):
-                logger.info('All task in loop is finished')
+                logger.info('All tasks in loop are finished')
             else:
-                logger.error('Some of the tasks in current loop is still running')
+                logger.error('Some tasks in current loop are still running')
                 raise RuntimeError
 
             loop.run_until_complete(loop.shutdown_asyncgens())

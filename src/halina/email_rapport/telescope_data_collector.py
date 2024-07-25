@@ -1,3 +1,12 @@
+"""
+Telescope Data Collector module.
+
+This module defines the TelescopeDtaCollector class which collects data from telescope streams.
+
+Classes:
+    - TelescopeDtaCollector: Collects and processes data from telescope streams.
+"""
+
 import asyncio
 import logging
 from typing import Dict, Optional
@@ -13,6 +22,31 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 class TelescopeDtaCollector:
+    """
+    TelescopeDtaCollector collects and processes data from telescope streams.
+
+    Attributes:
+        _NUMBER_STREAMS (int): Number of streams to be read.
+        _STR_NAME_RAW (str): Name for the raw stream.
+        _STR_NAME_ZDF (str): Name for the ZDF stream.
+        _STR_NAME_DOWNLOAD (str): Name for the download stream.
+        _utc_offset (int): UTC offset for time calculations.
+        _download_stream (str): Name of the download stream.
+        _raw_stream (str): Name of the raw stream.
+        _zdf_stream (str): Name of the ZDF stream.
+        _fits_pair (Dict[str, dict]): Dictionary to store FITS pairs.
+        _unchecked_ids (set): Set of unchecked IDs.
+        _fits_pair_lock (Optional[asyncio.Lock]): Lock for FITS pair operations.
+        _fits_pair_condition (Optional[asyncio.Condition]): Condition for FITS pair operations.
+        _finish_reading_streams (int): Counter for finished streams.
+        objects (Dict[str, DataObject]): Collected data objects.
+        count_fits (int): Count of FITS files.
+        count_fits_processed (int): Count of processed FITS files.
+        malformed_raw_count (int): Count of malformed raw files.
+        malformed_zdf_count (int): Count of malformed ZDF files.
+        malformed_download_count (int): Count of malformed download files.
+    """
+
     _NUMBER_STREAMS = 3
 
     _STR_NAME_RAW = "raw"
@@ -20,20 +54,26 @@ class TelescopeDtaCollector:
     _STR_NAME_DOWNLOAD = "download"
 
     def __init__(self, telescope_name: str = "", utc_offset: int = 0):
-        self._utc_offset: int = utc_offset  # offset hour for time zones
+        """
+        Initializes the TelescopeDtaCollector with the telescope name and UTC offset.
+
+        Args:
+            telescope_name (str): The name of the telescope.
+            utc_offset (int): The UTC offset for time calculations. Defaults to 0.
+        """
+        self._utc_offset: int = utc_offset
         self._download_stream: str = f"tic.status.{telescope_name.strip()}.download"
         self._raw_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.raw"
         self._zdf_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.zdf"
 
         # {fits_id: dict(raw: raw_fits, zdf: zdf_fits)}
         self._fits_pair: Dict[str, dict] = {}
-        self._unchecked_ids: set = set()  # remember unchecked id making program faster
+        self._unchecked_ids: set = set()
         self._fits_pair_lock: Optional[asyncio.Lock] = None
         self._fits_pair_condition: Optional[asyncio.Condition] = None
         self._finish_reading_streams: int = 0
 
-        # collected data
-        self.objects: Dict[str, DataObject] = {}  # used dict instead list is faster
+        self.objects: Dict[str, DataObject] = {}
         self.count_fits: int = 0
         self.count_fits_processed: int = 0
         self.malformed_raw_count: int = 0
@@ -42,26 +82,62 @@ class TelescopeDtaCollector:
 
     @property
     def _fp_lock(self) -> asyncio.Lock:
+        """
+        Initialization of the FITS pair lock.
+
+        Returns:
+            asyncio.Lock: The lock for FITS pair operations.
+        """
         if self._fits_pair_lock is None:
             self._fits_pair_lock = asyncio.Lock()
         return self._fits_pair_lock
 
     @property
     def _fp_condition(self) -> asyncio.Condition:
+        """
+        Initialization of the FITS pair condition.
+
+        Returns:
+            asyncio.Condition: The condition for FITS pair operations.
+        """
         if self._fits_pair_condition is None:
             self._fits_pair_condition = asyncio.Condition(lock=self._fp_lock)
         return self._fits_pair_condition
 
     def _get_download_stream(self) -> str:
+        """
+        Gets the download stream name.
+
+        Returns:
+            str: The download stream name.
+        """
         return self._download_stream
 
     def _get_raw_stream(self) -> str:
+        """
+        Gets the raw stream name.
+
+        Returns:
+            str: The raw stream name.
+        """
         return self._raw_stream
 
     def _get_zdf_stream(self) -> str:
+        """
+        Gets the ZDF stream name.
+
+        Returns:
+            str: The ZDF stream name.
+        """
         return self._zdf_stream
 
     def _count_malformed_fits(self, main_key: str):
+        """
+        Increments the count of malformed FITS files based on the main key.
+
+        Args:
+            main_key (str): The key indicating the type of FITS file (raw, zdf, or download).
+        """
         if main_key == TelescopeDtaCollector._STR_NAME_RAW:
             self.malformed_raw_count += 1
         if main_key == TelescopeDtaCollector._STR_NAME_ZDF:
@@ -70,6 +146,9 @@ class TelescopeDtaCollector:
             self.malformed_download_count += 1
 
     async def _read_data_from_download(self):
+        """
+        Reads data from the download stream.
+        """
         stream = self._get_download_stream()
         yesterday_midday = DateUtils.yesterday_midday()
         reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
@@ -116,6 +195,16 @@ class TelescopeDtaCollector:
 
     @staticmethod
     def _validate_download(data: dict, stream: str) -> bool:
+        """
+        Validates the download data.
+
+        Args:
+            data (dict): The data to validate.
+            stream (str): The name of the stream.
+
+        Returns:
+            bool: True if the data is valid, False otherwise.
+        """
         fits_id = data.get("fits_id")
         if not fits_id:
             logger.info(f"The read record from stream {stream} has no field:: fits_id")
@@ -132,6 +221,13 @@ class TelescopeDtaCollector:
         return True
 
     async def _read_data_from_stream(self, stream: str, main_key: str):
+        """
+        Reads data from the specified stream.
+
+        Args:
+            stream (str): The name of the stream.
+            main_key (str): The main key indicating the type of FITS file (raw or zdf).
+        """
         yesterday_midday = DateUtils.yesterday_midday()
         reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
         try:
@@ -181,6 +277,17 @@ class TelescopeDtaCollector:
 
     @staticmethod
     def _validate_record(data: dict, stream: str, main_key: str) -> bool:
+        """
+        Validates the record data.
+
+        Args:
+            data (dict): The data to validate.
+            stream (str): The name of the stream.
+            main_key (str): The main key indicating the type of FITS file (raw or zdf).
+
+        Returns:
+            bool: True if the data is valid, False otherwise.
+        """
         fits_id = data.get("fits_id")
         if not fits_id:
             logger.info(f"The read record from stream {stream} has no field:: fits_id")
@@ -201,6 +308,9 @@ class TelescopeDtaCollector:
         return True
 
     async def collect_data(self):
+        """
+        Collects data from all streams and evaluates it.
+        """
         logger.info(f"Start reading data from streams: {self._get_raw_stream()} & {self._get_zdf_stream()} "
                     f"& {self._get_download_stream()}")
         self._finish_reading_streams = 0
@@ -212,6 +322,9 @@ class TelescopeDtaCollector:
         logger.info(f"Finished reading data from streams. Read {self.count_fits} record")
 
     async def _evaluate_data(self):
+        """
+        Evaluates the collected data and processes FITS pairs.
+        """
         async with self._fp_condition:
             while self._finish_reading_streams < TelescopeDtaCollector._NUMBER_STREAMS:
                 await self._fp_condition.wait()
@@ -223,7 +336,7 @@ class TelescopeDtaCollector:
 
                     # if dict has _NUMBER_STREAMS key that mean we have all data to process
                     if len(pair) == TelescopeDtaCollector._NUMBER_STREAMS:
-                        self._fits_pair.pop(id_)  # remove key
+                        self._fits_pair.pop(id_)
                         await self._process_pair(pair)
             # process not completed fits pair (pair = raw + zdf)
             for id_, pair in self._fits_pair.items():
@@ -231,7 +344,12 @@ class TelescopeDtaCollector:
             self._fits_pair = {}  # clear pairs
 
     async def _process_pair(self, pair: dict):
-        # todo nie rozpatrujemy sytuacji gdzie jest zdjęcie zdf bez raw
+        """
+        Processes a FITS pair.
+
+        Args:
+            pair (dict): The FITS pair to process.
+        """
         try:
             raw = pair.get(TelescopeDtaCollector._STR_NAME_RAW)
             if not raw:

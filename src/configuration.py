@@ -1,3 +1,12 @@
+"""
+Configuration module.
+
+This module defines the GlobalConfig class which manages global configuration settings for the application.
+
+Classes:
+    - GlobalConfig: Manages global configuration settings.
+"""
+
 import dataclasses
 from asyncio import Lock
 from typing import Optional, Dict

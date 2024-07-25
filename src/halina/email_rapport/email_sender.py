@@ -1,3 +1,12 @@
+"""
+Email Sender module.
+
+This module defines the EmailSender class which handles the sending of emails using SMTP.
+
+Classes:
+    - EmailSender: Sends emails using SMTP.
+"""
+
 import asyncio
 import logging
 from aiosmtplib import SMTP, SMTPException
@@ -9,10 +18,35 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 class EmailSender:
+    """
+    EmailSender handles the sending of emails using SMTP.
+
+    Attributes:
+        to_email (str): The recipient's email address.
+    """
+
     def __init__(self, to_email: str):
+        """
+        Initializes the EmailSender with the recipient's email address.
+
+        Args:
+            to_email (str): The recipient's email address.
+        """
         self.to_email: str = to_email
 
     async def send(self, message: MIMEMultipart) -> bool:
+        """
+        Sends an email message using SMTP.
+
+        Args:
+            message (MIMEMultipart): The email message to be sent.
+
+        Returns:
+            bool: True if the email was sent successfully, False otherwise.
+
+        Raises:
+            ValueError: If the email app password is not set in the configuration.
+        """
         from_email = GlobalConfig.get(GlobalConfig.FROM_EMAIL)
         email_app_password = GlobalConfig.get(GlobalConfig.EMAIL_APP_PASSWORD)
         if not email_app_password:
