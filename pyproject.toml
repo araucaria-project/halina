@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "halina"
-version = "0.1.6"
+version = "0.1.7"
 description = "Heuristic Algorithmic Library..."
 authors = []
 readme = "README.md"
@@ -21,3 +21,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 services = "src.halina.main:main"
+simulator = "simulator.main:run"
