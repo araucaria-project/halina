@@ -45,27 +45,40 @@ The following environment variables can be used to configure the simulator and e
 
 - `NATS_HOST`: NATS server host
 - `NATS_PORT`: NATS server port
-- `TELESCOPES_NAME`: list of telescope names if json format for example `["jk15","zb08"]`
-- `EMAILS_TO`: List of email addresses to send reports to in json format `["mail1@example.com","mail1@example.com"]`
+- `TELESCOPES_NAME`: list of telescope names if json format for example `'["jk15","zb08"]'`. List type variable
+- `EMAILS_TO`: List of email addresses to send reports to in json format `'["mail1@example.com","mail1@example.com"]'`. List type variable
 - `SMTP_HOST`: Server SMTP host name
 - `SMTP_PORT`: Server SMTP port
 - `FROM_EMAIL`: Technical email to sending messages 
 - `EMAIL_APP_PASSWORD`: Password to technical email 
 - `SEND_AT`: UTC time at which the data collection process will be started. It is integer number representing hour.
 
+Note. It is important that List type variables are wrapped in `' '`.
 
 Example .env file:
 
 ```text
 NATS_HOST=localhost
 NATS_PORT=4222
-TELESCOPES_NAME=["jk15","zb08"]
-EMAILS_TO=["mail1@example.com","mail1@example.com"]
+TELESCOPES_NAME='["jk15","zb08"]'
+EMAILS_TO='["mail1@example.com","mail1@example.com"]'
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 FROM_EMAIL=noreply.araucaria
 EMAIL_APP_PASSWORD=abcdefg1234
 SEND_AT=14
+```
+
+If you are running the application not via Docker, the .env file is not loaded automatically. You must import it manually. 
+```bash
+env $(cat .env | xargs)
+```
+It is also possible to set environment variables manually one by one.
+
+It is also possible to configure the application by providing variable values directly as command options. For example: 
+
+```bash
+poetry run services 
 ```
 
 ## Usage
@@ -77,7 +90,7 @@ The email report service collects data from various telescopes, processes it, an
 To run the email report service, use the following command:
 
 ```bash
-poetry run services
+poetry run services TELESCOPES_NAME='["jk15","zb08"]' NATS_PORT=4222
 ```
 
 ## Development
