@@ -51,6 +51,11 @@ class EmailRapportService(Service):
         try:
             today_date = datetime.datetime.now(datetime.UTC).date()
             send_at_time = datetime.datetime.combine(today_date, self._send_at_time, tzinfo=datetime.UTC)
+
+            # if we start application after sending time wait until next day
+            if send_at_time < datetime.datetime.now(datetime.UTC):
+                send_at_time = send_at_time + datetime.timedelta(days=1)
+
             while True:
                 now = datetime.datetime.now(datetime.UTC)
                 await asyncio.sleep((send_at_time-now).total_seconds())
