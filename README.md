@@ -39,6 +39,35 @@ The Halina project is a heuristic algorithmic library designed for managing and 
     poetry install
     ```
 
+## Configuration
+
+The following environment variables can be used to configure the simulator and email report service:
+
+- `NATS_HOST`: NATS server host
+- `NATS_PORT`: NATS server port
+- `TELESCOPES_NAME`: list of telescope names if json format for example `["jk15","zb08"]`
+- `EMAILS_TO`: List of email addresses to send reports to in json format `["mail1@example.com","mail1@example.com"]`
+- `SMTP_HOST`: Server SMTP host name
+- `SMTP_PORT`: Server SMTP port
+- `FROM_EMAIL`: Technical email to sending messages 
+- `EMAIL_APP_PASSWORD`: Password to technical email 
+- `SEND_AT`: UTC time at which the data collection process will be started. It is integer number representing hour.
+
+
+Example .env file:
+
+```text
+NATS_HOST=localhost
+NATS_PORT=4222
+TELESCOPES_NAME=["jk15","zb08"]
+EMAILS_TO=["mail1@example.com","mail1@example.com"]
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+FROM_EMAIL=noreply.araucaria
+EMAIL_APP_PASSWORD=abcdefg1234
+SEND_AT=14
+```
+
 ## Usage
 
 ### Email Report Service
@@ -50,6 +79,8 @@ To run the email report service, use the following command:
 ```bash
 poetry run services
 ```
+
+## Development
 
 ### Running the Data Simulator
 
@@ -75,38 +106,6 @@ To generate and publish 12 copies of data for telescopes zb08 and jk15 to a NATS
 ```bash 
 poetry run simulator --num_copies 12 --host localhost --port 4222 --telescopes zb08,jk15
 ```
-
-## Configuration
-
-The following environment variables can be used to configure the simulator and email report service:
-
-- `NUM_COPIES`: Number of copies to generate for each telescope
-- `NATS_HOST`: NATS server host
-- `NATS_PORT`: NATS server port
-- `TELESCOPES`: Comma-separated list of telescope names
-- `EMAILS_TO`: List of email addresses to send reports to
-
-Example usage with environment variables:
-
-```bash 
-export NUM_COPIES=12
-export NATS_HOST=localhost
-export NATS_PORT=4222
-export TELESCOPES=zb08,jk15
-export EMAILS_TO="email1@example.com,email2@example.com"
-poetry run services
-```
-
-## Development
-
-To set up a development environment:
-
-1. Clone the repository and install dependencies as described in the Installation section.
-2. Run tests to ensure everything is working correctly:
-    ```bash
-    
-    ```
-3. Make your changes and commit them to a new branch.
 
 ## License
 
