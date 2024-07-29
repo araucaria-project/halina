@@ -50,20 +50,21 @@ The following environment variables can be used to configure the simulator and e
 - `SMTP_HOST`: Server SMTP host name
 - `SMTP_PORT`: Server SMTP port
 - `FROM_EMAIL`: Technical email to sending messages 
+- `FROM_EMAIL_USER`: Display name for the email sender
 - `EMAIL_APP_PASSWORD`: Password to technical email 
 - `SEND_AT`: UTC time at which the data collection process will be started. It is integer number representing hour.
 
-
-Example .env file:
+Example `.env` file:
 
 ```text
 NATS_HOST=localhost
 NATS_PORT=4222
 TELESCOPES_NAME=["jk15","zb08"]
-EMAILS_TO=["mail1@example.com","mail1@example.com"]
+EMAILS_TO=["mail1@example.com","mail2@example.com"]
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 FROM_EMAIL=noreply.araucaria
+FROM_EMAIL_USER="Araucaria - Night Report"
 EMAIL_APP_PASSWORD=abcdefg1234
 SEND_AT=14
 ```
