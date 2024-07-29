@@ -2,6 +2,7 @@ import asyncio
 import logging
 from aiosmtplib import SMTP, SMTPException
 from email.mime.multipart import MIMEMultipart
+from email.utils import formataddr
 
 from configuration import GlobalConfig
 
@@ -15,11 +16,14 @@ class EmailSender:
     async def send(self, message: MIMEMultipart) -> bool:
         from_email = GlobalConfig.get(GlobalConfig.FROM_EMAIL)
         email_app_password = GlobalConfig.get(GlobalConfig.EMAIL_APP_PASSWORD)
+        user_name = GlobalConfig.get(GlobalConfig.FROM_EMAIL_USER)
         if not email_app_password:
             logger.error("Email app password is required but not set.")
             raise ValueError("Email app password is required but not set.")
+        logger.info(f"Email name: {user_name}")
 
-        message["From"] = from_email
+        # Set the "From" header with the display name and email address
+        message["From"] = formataddr((user_name, from_email))
         message["To"] = self.to_email
 
         smtp: SMTP = SMTP(hostname=GlobalConfig.get(GlobalConfig.SMTP_HOST),
