@@ -50,12 +50,13 @@ The following environment variables can be used to configure the simulator and e
 - `SMTP_HOST`: Server SMTP host name
 - `SMTP_PORT`: Server SMTP port
 - `FROM_EMAIL`: Technical email to sending messages 
+- `FROM_EMAIL_USER`: Display name for the email sender
 - `EMAIL_APP_PASSWORD`: Password to technical email 
 - `SEND_AT`: UTC time at which the data collection process will be started. It is integer number representing hour.
 
 Note. It is important that List type variables are wrapped in `' '`.
 
-Example .env file:
+Example `.env` file:
 
 ```text
 NATS_HOST=localhost
@@ -65,6 +66,7 @@ EMAILS_TO='["mail1@example.com","mail1@example.com"]'
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 FROM_EMAIL=noreply.araucaria
+FROM_EMAIL_USER='Araucaria - Night Report'
 EMAIL_APP_PASSWORD=abcdefg1234
 SEND_AT=14
 ```
@@ -78,7 +80,7 @@ It is also possible to set environment variables manually one by one.
 It is also possible to configure the application by providing variable values directly as command options. For example: 
 
 ```bash
-poetry run services 
+poetry run services TELESCOPES_NAME='["jk15","zb08"]' NATS_PORT=4222
 ```
 
 ## Usage
@@ -90,7 +92,7 @@ The email report service collects data from various telescopes, processes it, an
 To run the email report service, use the following command:
 
 ```bash
-poetry run services TELESCOPES_NAME='["jk15","zb08"]' NATS_PORT=4222
+poetry run services
 ```
 
 ## Development
