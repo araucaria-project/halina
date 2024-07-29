@@ -43,6 +43,7 @@ def read_configuration(**kwargs):
     set_single_setting(GlobalConfig.EMAILS_TO, kwargs, False)
     set_single_setting(GlobalConfig.EMAIL_APP_PASSWORD, kwargs)
     set_single_setting(GlobalConfig.FROM_EMAIL, kwargs)
+    set_single_setting(GlobalConfig.FROM_EMAIL_USER, kwargs)
     set_single_setting(GlobalConfig.SMTP_HOST, kwargs)
     set_single_setting(GlobalConfig.SMTP_PORT, kwargs, False)
     set_single_setting(GlobalConfig.SEND_AT, kwargs, False)
