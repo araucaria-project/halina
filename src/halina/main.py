@@ -30,9 +30,9 @@ def set_single_setting(name: str, settings: dict, type_str: bool = True):
         try:
             if not type_str:
                 setting = json.loads(setting)
+            GlobalConfig.set(name, setting)
         except ValueError:
-            logger.warning(f"Can not cast arg: {name}")
-        GlobalConfig.set(name, setting)
+            logger.warning(f"Can not cast arg: {name}. Variable {name} not set")
 
 
 def read_configuration(**kwargs):
