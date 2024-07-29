@@ -38,7 +38,7 @@ def set_single_setting(name: str, settings: dict, type_str: bool = True):
 def read_configuration(**kwargs):
     set_single_setting(GlobalConfig.NATS_PORT, kwargs, False)
     set_single_setting(GlobalConfig.NATS_HOST, kwargs)
-    set_single_setting(GlobalConfig.TELESCOPES_NAME, kwargs, False)
+    set_single_setting(GlobalConfig.TELESCOPE_NAMES, kwargs, False)
     set_single_setting(GlobalConfig.TIMEZONE, kwargs, False)
     set_single_setting(GlobalConfig.EMAILS_TO, kwargs, False)
     set_single_setting(GlobalConfig.EMAIL_APP_PASSWORD, kwargs)
