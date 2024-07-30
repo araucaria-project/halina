@@ -50,8 +50,8 @@ The following environment variables can be used to configure the simulator and e
 - `SMTP_HOST`: Server SMTP host name
 - `SMTP_PORT`: Server SMTP port
 - `FROM_EMAIL`: Technical email to sending messages 
-- `FROM_EMAIL_USER`: Display name for the email sender
-- `EMAIL_APP_PASSWORD`: Password to technical email 
+- `FROM_NAME`: Display name for the email sender
+- `SMTP_PASSWORD`: Password to technical email 
 - `SEND_AT`: UTC time at which the data collection process will be started. It is integer number representing hour.
 
 Note. It is important that List type variables are wrapped in `' '`.
