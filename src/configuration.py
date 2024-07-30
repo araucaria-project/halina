@@ -45,7 +45,7 @@ class GlobalConfig:
     SMTP_HOST = "SMTP_HOST"
     SMTP_PORT = "SMTP_PORT"
     SMTP_USERNAME = "SMTP_USERNAME"
-    TELESCOPES_NAME = "TELESCOPES_NAME"
+    TELESCOPE_NAMES = "TELESCOPE_NAMES"
     EMAILS_TO = "EMAILS_TO"
     TIMEZONE = "TIMEZONE"
     FROM_EMAIL = "FROM_EMAIL"
@@ -57,7 +57,7 @@ class GlobalConfig:
         NATS_HOST: __ConfigVal("localhost", str),
         NATS_PORT: __ConfigVal(4222, int),
         SMTP_USERNAME: __ConfigVal([], str),
-        TELESCOPES_NAME: __ConfigVal([], list),
+        TELESCOPE_NAMES: __ConfigVal([], list),
         EMAILS_TO: __ConfigVal([], list),
         TIMEZONE: __ConfigVal(0, int),
         SMTP_HOST: __ConfigVal("smtp.gmail.com", str),
@@ -67,7 +67,7 @@ class GlobalConfig:
         SMTP_PASSWORD: __ConfigVal("", str),
         SEND_AT: __ConfigVal(14, int),  # at witch hour will be sent email
     }
-    __setters = [NATS_HOST, NATS_PORT, SMTP_USERNAME, TELESCOPES_NAME, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT, FROM_EMAIL,
+    __setters = [NATS_HOST, NATS_PORT, SMTP_USERNAME, TELESCOPE_NAMES, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT, FROM_EMAIL,
                  FROM_NAME, SMTP_PASSWORD, SEND_AT]
 
     @classmethod

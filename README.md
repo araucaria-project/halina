@@ -66,11 +66,10 @@ SMTP_PORT=587
 
 TELESCOPE_NAMES='["jk15","zb08"]'
 EMAILS_TO='["mail1@example.com","mail1@example.com"]'
-TIMEZONE=1
 FROM_EMAIL="example@email.com"
 FROM_NAME="Halina from OCM"
 SMTP_PASSWORD="abcdefg"
-SEND_AT=16
+SEND_AT=14
 ```
 
 If you are running the application not via Docker, the .env file is not loaded automatically. You must import it manually. 
