@@ -65,11 +65,9 @@ class GlobalConfig:
         FROM_EMAIL_USER: __ConfigVal("Night Report Araucaria", str),
         EMAIL_APP_PASSWORD: __ConfigVal("", str),
         SEND_AT: __ConfigVal(14, int),  # at witch hour will be sent email
-        SMTP_USE_TLS: __ConfigVal(True, bool),
-        SMTP_USE_SSL: __ConfigVal(False, bool),
     }
     __setters = [NATS_HOST, NATS_PORT, TELESCOPE_NAMES, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT, FROM_EMAIL,
-                 FROM_EMAIL_USER, EMAIL_APP_PASSWORD, SEND_AT, SMTP_USE_TLS, SMTP_USE_SSL]
+                 FROM_EMAIL_USER, EMAIL_APP_PASSWORD, SEND_AT]
 
     @classmethod
     def get(cls, name, default=None):
