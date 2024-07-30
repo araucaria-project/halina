@@ -45,6 +45,7 @@ The following environment variables can be used to configure the simulator and e
 
 - `NATS_HOST`: NATS server host
 - `NATS_PORT`: NATS server port
+- `SMTP_USERNAME`: the name of the email sender displayed next to the email
 - `TELESCOPE_NAMES`: list of telescope names if json format for example `'["jk15","zb08"]'`. List type variable
 - `EMAILS_TO`: List of email addresses to send reports to in json format `'["mail1@example.com","mail1@example.com"]'`. List type variable
 - `SMTP_HOST`: Server SMTP host name
