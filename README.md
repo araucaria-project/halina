@@ -45,13 +45,14 @@ The following environment variables can be used to configure the simulator and e
 
 - `NATS_HOST`: NATS server host
 - `NATS_PORT`: NATS server port
+- `SMTP_USERNAME`: the name of the email sender displayed next to the email
 - `TELESCOPE_NAMES`: list of telescope names if json format for example `'["jk15","zb08"]'`. List type variable
 - `EMAILS_TO`: List of email addresses to send reports to in json format `'["mail1@example.com","mail1@example.com"]'`. List type variable
 - `SMTP_HOST`: Server SMTP host name
 - `SMTP_PORT`: Server SMTP port
 - `FROM_EMAIL`: Technical email to sending messages 
-- `FROM_EMAIL_USER`: Display name for the email sender
-- `EMAIL_APP_PASSWORD`: Password to technical email 
+- `FROM_NAME`: Display name for the email sender
+- `SMTP_PASSWORD`: Password to technical email 
 - `SEND_AT`: UTC time at which the data collection process will be started. It is integer number representing hour.
 
 Note. It is important that List type variables are wrapped in `' '`.
@@ -61,13 +62,14 @@ Example `.env` file:
 ```text
 NATS_HOST=localhost
 NATS_PORT=4222
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+
 TELESCOPE_NAMES='["jk15","zb08"]'
 EMAILS_TO='["mail1@example.com","mail1@example.com"]'
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-FROM_EMAIL=noreply.araucaria
-FROM_EMAIL_USER='Araucaria - Night Report'
-EMAIL_APP_PASSWORD=abcdefg1234
+FROM_EMAIL="example@email.com"
+FROM_NAME="Halina from OCM"
+SMTP_PASSWORD="abcdefg"
 SEND_AT=14
 ```
 
