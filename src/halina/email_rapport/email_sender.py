@@ -15,24 +15,26 @@ class EmailSender:
 
     async def send(self, message: MIMEMultipart) -> bool:
         from_email = GlobalConfig.get(GlobalConfig.FROM_EMAIL)
-        email_app_password = GlobalConfig.get(GlobalConfig.EMAIL_APP_PASSWORD)
-        user_name = GlobalConfig.get(GlobalConfig.FROM_EMAIL_USER)
+        email_app_password = GlobalConfig.get(GlobalConfig.SMTP_PASSWORD)
+        user_name = GlobalConfig.get(GlobalConfig.SMTP_USERNAME)
+        from_name = GlobalConfig.get(GlobalConfig.FROM_NAME)
+
+
         if not email_app_password:
             logger.error("Email app password is required but not set.")
             raise ValueError("Email app password is required but not set.")
         logger.info(f"Email name: {user_name}")
 
         # Set the "From" header with the display name and email address
-        message["From"] = formataddr((user_name, from_email))
+        message["From"] = formataddr((from_name, from_email))
         message["To"] = self.to_email
 
         smtp: SMTP = SMTP(hostname=GlobalConfig.get(GlobalConfig.SMTP_HOST),
                           port=GlobalConfig.get(GlobalConfig.SMTP_PORT),
                           start_tls=True)
-
         try:
             async with smtp:
-                await smtp.login(from_email, email_app_password)
+                await smtp.login(user_name, email_app_password)
                 await smtp.send_message(message)
                 logger.info(f"Email sent successfully to {self.to_email}")
                 return True
