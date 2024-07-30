@@ -61,14 +61,16 @@ Example `.env` file:
 ```text
 NATS_HOST=localhost
 NATS_PORT=4222
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+
 TELESCOPE_NAMES='["jk15","zb08"]'
 EMAILS_TO='["mail1@example.com","mail1@example.com"]'
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-FROM_EMAIL=noreply.araucaria
-FROM_EMAIL_USER='Araucaria - Night Report'
-EMAIL_APP_PASSWORD=abcdefg1234
-SEND_AT=14
+TIMEZONE=1
+FROM_EMAIL="example@email.com"
+FROM_NAME="Halina from OCM"
+SMTP_PASSWORD="abcdefg"
+SEND_AT=16
 ```
 
 If you are running the application not via Docker, the .env file is not loaded automatically. You must import it manually. 
