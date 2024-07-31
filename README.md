@@ -39,6 +39,52 @@ The Halina project is a heuristic algorithmic library designed for managing and 
     poetry install
     ```
 
+## Configuration
+
+The following environment variables can be used to configure the simulator and email report service:
+
+- `NATS_HOST`: NATS server host
+- `NATS_PORT`: NATS server port
+- `SMTP_USERNAME`: the name of the email sender displayed next to the email
+- `TELESCOPE_NAMES`: list of telescope names if json format for example `'["jk15","zb08"]'`. List type variable
+- `EMAILS_TO`: List of email addresses to send reports to in json format `'["mail1@example.com","mail1@example.com"]'`. List type variable
+- `SMTP_HOST`: Server SMTP host name
+- `SMTP_PORT`: Server SMTP port
+- `FROM_EMAIL`: Technical email to sending messages 
+- `FROM_NAME`: Display name for the email sender
+- `SMTP_PASSWORD`: Password to technical email 
+- `SEND_AT`: UTC time at which the data collection process will be started. It is integer number representing hour.
+
+Note. It is important that List type variables are wrapped in `' '`.
+
+Example `.env` file:
+
+```text
+NATS_HOST=localhost
+NATS_PORT=4222
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+
+TELESCOPE_NAMES='["jk15","zb08"]'
+EMAILS_TO='["mail1@example.com","mail1@example.com"]'
+FROM_EMAIL="example@email.com"
+FROM_NAME="Halina from OCM"
+SMTP_PASSWORD="abcdefg"
+SEND_AT=14
+```
+
+If you are running the application not via Docker, the .env file is not loaded automatically. You must import it manually. 
+```bash
+env $(cat .env | xargs)
+```
+It is also possible to set environment variables manually one by one.
+
+It is also possible to configure the application by providing variable values directly as command options. For example: 
+
+```bash
+poetry run services TELESCOPE_NAMES='["jk15","zb08"]' NATS_PORT=4222
+```
+
 ## Usage
 
 ### Email Report Service
@@ -50,6 +96,8 @@ To run the email report service, use the following command:
 ```bash
 poetry run services
 ```
+
+## Development
 
 ### Running the Data Simulator
 
@@ -75,38 +123,6 @@ To generate and publish 12 copies of data for telescopes zb08 and jk15 to a NATS
 ```bash 
 poetry run simulator --num_copies 12 --host localhost --port 4222 --telescopes zb08,jk15
 ```
-
-## Configuration
-
-The following environment variables can be used to configure the simulator and email report service:
-
-- `NUM_COPIES`: Number of copies to generate for each telescope
-- `NATS_HOST`: NATS server host
-- `NATS_PORT`: NATS server port
-- `TELESCOPES`: Comma-separated list of telescope names
-- `EMAILS_TO`: List of email addresses to send reports to
-
-Example usage with environment variables:
-
-```bash 
-export NUM_COPIES=12
-export NATS_HOST=localhost
-export NATS_PORT=4222
-export TELESCOPES=zb08,jk15
-export EMAILS_TO="email1@example.com,email2@example.com"
-poetry run services
-```
-
-## Development
-
-To set up a development environment:
-
-1. Clone the repository and install dependencies as described in the Installation section.
-2. Run tests to ensure everything is working correctly:
-    ```bash
-    
-    ```
-3. Make your changes and commit them to a new branch.
 
 ## License
 

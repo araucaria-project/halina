@@ -1,6 +1,5 @@
 import dataclasses
-from asyncio import Lock
-from typing import Optional, Dict
+from typing import Dict
 
 
 # class SingletonMeta(type):
@@ -43,29 +42,33 @@ class GlobalConfig:
     # keys
     NATS_HOST = "NATS_HOST"
     NATS_PORT = "NATS_PORT"
-    TELESCOPES_NAME = "TELESCOPES_NAME"
-    EMAILS_TO = "EMAILS"
-    TIMEZONE = "TIMEZONE"
     SMTP_HOST = "SMTP_HOST"
     SMTP_PORT = "SMTP_PORT"
+    SMTP_USERNAME = "SMTP_USERNAME"
+    TELESCOPE_NAMES = "TELESCOPE_NAMES"
+    EMAILS_TO = "EMAILS_TO"
+    TIMEZONE = "TIMEZONE"
     FROM_EMAIL = "FROM_EMAIL"
-    EMAIL_APP_PASSWORD = "EMAIL_APP_PASSWORD"
+    FROM_NAME = "FROM_NAME"
+    SMTP_PASSWORD = "SMTP_PASSWORD"
     SEND_AT = "SEND_AT"
 
     __conf: Dict[str, __ConfigVal] = {
         NATS_HOST: __ConfigVal("localhost", str),
         NATS_PORT: __ConfigVal(4222, int),
-        TELESCOPES_NAME: __ConfigVal([], list),
+        SMTP_USERNAME: __ConfigVal([], str),
+        TELESCOPE_NAMES: __ConfigVal([], list),
         EMAILS_TO: __ConfigVal([], list),
         TIMEZONE: __ConfigVal(0, int),
         SMTP_HOST: __ConfigVal("smtp.gmail.com", str),
         SMTP_PORT: __ConfigVal(587, int),
         FROM_EMAIL: __ConfigVal("dchmal@akond.com", str),
-        EMAIL_APP_PASSWORD: __ConfigVal("", str),
+        FROM_NAME: __ConfigVal("Night Report Araucaria", str),
+        SMTP_PASSWORD: __ConfigVal("", str),
         SEND_AT: __ConfigVal(14, int),  # at witch hour will be sent email
     }
-    __setters = [NATS_HOST, NATS_PORT, TELESCOPES_NAME, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT, FROM_EMAIL,
-                 EMAIL_APP_PASSWORD, SEND_AT]
+    __setters = [NATS_HOST, NATS_PORT, SMTP_USERNAME, TELESCOPE_NAMES, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT, FROM_EMAIL,
+                 FROM_NAME, SMTP_PASSWORD, SEND_AT]
 
     @classmethod
     def get(cls, name, default=None):
