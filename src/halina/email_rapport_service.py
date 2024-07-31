@@ -48,7 +48,7 @@ class EmailRapportService(Service):
         super().__init__()
         self._nats_messenger = Messenger()
         self._utc_offset: int = utc_offset
-        self._telescopes: List[str] = GlobalConfig.get(GlobalConfig.TELESCOPES_NAME)
+        self._telescopes: List[str] = GlobalConfig.get(GlobalConfig.TELESCOPE_NAMES)
         self._send_at_time = datetime.time(GlobalConfig.get(GlobalConfig.SEND_AT), 0)
 
     @staticmethod
@@ -95,6 +95,11 @@ class EmailRapportService(Service):
         try:
             today_date = datetime.datetime.now(datetime.UTC).date()
             send_at_time = datetime.datetime.combine(today_date, self._send_at_time, tzinfo=datetime.UTC)
+
+            # if we start application after sending time wait until next day
+            if send_at_time < datetime.datetime.now(datetime.UTC):
+                send_at_time = send_at_time + datetime.timedelta(days=1)
+
             while True:
                 now = datetime.datetime.now(datetime.UTC)
                 await asyncio.sleep((send_at_time-now).total_seconds())
