@@ -45,14 +45,14 @@ The following environment variables can be used to configure the simulator and e
 
 - `NATS_HOST`: NATS server host
 - `NATS_PORT`: NATS server port
-- `SMTP_USERNAME`: the name of the email sender displayed next to the email
-- `TELESCOPE_NAMES`: list of telescope names if json format for example `'["jk15","zb08"]'`. List type variable
-- `EMAILS_TO`: List of email addresses to send reports to in json format `'["mail1@example.com","mail1@example.com"]'`. List type variable
+- `TELESCOPES`: List of telescope names included in HALina analysis.e.g. `'["jk15","zb08"]'` (JSON list)
+- `EMAILS_TO`: List of email addresses to send reports to `'["mail1@example.com","mail1@example.com"]'` (JSON list)
 - `SMTP_HOST`: Server SMTP host name
 - `SMTP_PORT`: Server SMTP port
-- `FROM_EMAIL`: Technical email to sending messages 
-- `FROM_NAME`: Display name for the email sender
-- `SMTP_PASSWORD`: Password to technical email 
+- `SMTP_USERNAME`: SMTP server username 
+- `SMTP_PASSWORD`: SMTP server user password  
+- `FROM_EMAIL`: Sent emails FROM field email address, e.g. `noreplay.example.com` 
+- `FROM_NAME`: Sent emails FROM field display name, e.g. `HALina`
 - `SEND_AT`: UTC time at which the data collection process will be started. It is integer number representing hour.
 
 Note. It is important that List type variables are wrapped in `' '`.
@@ -62,14 +62,16 @@ Example `.env` file:
 ```text
 NATS_HOST=localhost
 NATS_PORT=4222
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT=587
 
-TELESCOPE_NAMES='["jk15","zb08"]'
-EMAILS_TO='["mail1@example.com","mail1@example.com"]'
-FROM_EMAIL="example@email.com"
-FROM_NAME="Halina from OCM"
+TELESCOPES='["jk15","zb08"]'
+
+SMTP_HOST="smtp.example.com"
+SMTP_PORT=587
+SMTP_USERNAME="halina@example.com"
 SMTP_PASSWORD="abcdefg"
+EMAILS_TO='["mail1@example.com","mail1@example.com"]'
+FROM_EMAIL="noreplay@example.com"
+FROM_NAME="Halina"
 SEND_AT=14
 ```
 
@@ -82,7 +84,7 @@ It is also possible to set environment variables manually one by one.
 It is also possible to configure the application by providing variable values directly as command options. For example: 
 
 ```bash
-poetry run services TELESCOPE_NAMES='["jk15","zb08"]' NATS_PORT=4222
+poetry run services TELESCOPES='["jk15","zb08"]' NATS_PORT=4222
 ```
 
 ## Usage
