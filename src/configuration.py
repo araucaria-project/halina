@@ -1,41 +1,33 @@
 import dataclasses
 from typing import Dict
+from dynaconf import Dynaconf
 
-
-# class SingletonMeta(type):
-#     _instances = {}
-#     _lock: Lock = Lock()
-#
-#     def __call__(cls, *args, **kwargs):
-#         """
-#         Possible changes to the value of the `__init__` argument do not affect
-#         the returned instance.
-#         """
-#         with cls._lock:
-#             if cls not in cls._instances:
-#                 instance = super().__call__(*args, **kwargs)
-#                 cls._instances[cls] = instance
-#         return cls._instances[cls]
+from definitions import CONFIG_DIR
 
 
 class GlobalConfig:
     @dataclasses.dataclass
     class __ConfigVal:
-        val: object
         type: type
-        is_optional: bool = False
+        val: object = None
 
-        def __init__(self, val, type_, is_optional=False):
-            self.val = val
+        def __init__(self, type_):
+            self.val = None
             self.type: type = type_
-            self.is_optional = is_optional
 
         def set_val(self, v):
-            if isinstance(v, self.type) or (self.is_optional and v is None):
+            if isinstance(v, self.type):
                 self.val = v
             else:
                 raise TypeError(f"a parameter of type {type(v)} was received and a parameter of type  "
                                 f"{self.type} was expected")
+
+    # Dynaconf source
+    __settings = Dynaconf(
+        settings_files=[f'{CONFIG_DIR}/default_settings.toml',
+                        f'{CONFIG_DIR}/settings.toml',
+                        '/usr/local/etc/halina/settings.toml'],
+    )
 
     APP_NAME = 'halina'
 
@@ -53,34 +45,36 @@ class GlobalConfig:
     SMTP_PASSWORD = "SMTP_PASSWORD"
     SEND_AT = "SEND_AT"
 
+    # dict of empty values. If someone will be overridden by not None value, this value will be return instead
+    # value from config
     __conf: Dict[str, __ConfigVal] = {
-        NATS_HOST: __ConfigVal("localhost", str),
-        NATS_PORT: __ConfigVal(4222, int),
-        SMTP_USERNAME: __ConfigVal([], str),
-        TELESCOPES: __ConfigVal([], list),
-        EMAILS_TO: __ConfigVal([], list),
-        TIMEZONE: __ConfigVal(0, int),
-        SMTP_HOST: __ConfigVal("smtp.gmail.com", str),
-        SMTP_PORT: __ConfigVal(587, int),
-        FROM_EMAIL: __ConfigVal("dchmal@akond.com", str),
-        FROM_NAME: __ConfigVal("Night Report Araucaria", str),
-        SMTP_PASSWORD: __ConfigVal("", str),
-        SEND_AT: __ConfigVal(14, int),  # at witch hour will be sent email
+        NATS_HOST: __ConfigVal(str),
+        NATS_PORT: __ConfigVal(int),
+        SMTP_USERNAME: __ConfigVal(str),
+        TELESCOPES: __ConfigVal(list),
+        EMAILS_TO: __ConfigVal(list),
+        TIMEZONE: __ConfigVal(int),
+        SMTP_HOST: __ConfigVal(str),
+        SMTP_PORT: __ConfigVal(int),
+        FROM_EMAIL: __ConfigVal(str),
+        FROM_NAME: __ConfigVal(str),
+        SMTP_PASSWORD: __ConfigVal(str),
+        SEND_AT: __ConfigVal(int),  # at witch hour will be sent email
     }
-    __setters = [NATS_HOST, NATS_PORT, SMTP_USERNAME, TELESCOPES, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT, FROM_EMAIL,
-                 FROM_NAME, SMTP_PASSWORD, SEND_AT]
+    # __setters = [NATS_HOST, NATS_PORT, SMTP_USERNAME, TELESCOPES, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT,
+    #              FROM_EMAIL, FROM_NAME, SMTP_PASSWORD, SEND_AT]
 
     @classmethod
     def get(cls, name, default=None):
         cv = cls.__conf.get(name)
-        if cv:
+        if cv and cv.val is not None:
             return cv.val
         else:
-            return default
+            return cls.__settings.get(name, default)
 
     @classmethod
     def set(cls, name, value):
-        if name in cls.__setters:
+        if name in cls.__conf:
             cls.__conf.get(name).set_val(value)
         else:
             raise NameError("Name not accepted in set() method")

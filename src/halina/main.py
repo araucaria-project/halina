@@ -1,10 +1,10 @@
 import asyncio
 import json
 import logging
-import os
 import signal
 import sys
 import platform
+from typing import Optional
 
 from configuration import GlobalConfig
 from halina.email_rapport_service import EmailRapportService
@@ -15,13 +15,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] [%(n
 logger = logging.getLogger('main')
 
 
-def get_setting(name: str, settings: dict):
-    if name in settings:
-        return settings.get(name, None)
-    env = os.getenv(name)
-    if env is not None:
-        return env
-    return None
+def get_setting(name: str, settings: dict) -> Optional[str]:
+    return settings.get(name, None)
 
 
 def set_single_setting(name: str, settings: dict, type_str: bool = True):
@@ -48,7 +43,6 @@ def read_configuration(**kwargs):
     set_single_setting(GlobalConfig.FROM_EMAIL, kwargs)
     set_single_setting(GlobalConfig.EMAILS_TO, kwargs, False)
     set_single_setting(GlobalConfig.SEND_AT, kwargs, False)
-
 
 
 async def main_coroutine():

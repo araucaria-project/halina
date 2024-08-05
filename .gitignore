@@ -134,3 +134,9 @@ dmypy.json
 
 /docker/nats/nats-log/
 /docker/nats/nats-store/
+
+# configuration
+configuration/*
+!configuration/.gitkeep
+!configuration/sample_settings.toml
+!configuration/default_settings.toml
