@@ -16,6 +16,7 @@ aiohttp = "^3.9.5"
 pyaraucaria = {git = "https://github.com/araucaria-project/pyaraucaria.git"}
 jinja2 = "^3.1.4"
 aiofiles = "^24.1.0"
+dynaconf = "^3.2.6"
 
 [build-system]
 requires = ["poetry-core"]

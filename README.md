@@ -41,12 +41,21 @@ The Halina project is a heuristic algorithmic library designed for managing and 
 
 ## Configuration
 
-The following environment variables can be used to configure the simulator and email report service:
+The application is configured by creating a TOML file named `settings.toml` and placing it in the appropriate directory or providing 
+parameters as command arguments. Configuration files are read sequentially from the locations and if the parameters 
+are repeated, they are overwritten.
+Locations:
+- `./configuration/default_settings.toml`
+- `./configuration/settings.toml`
+- `/usr/local/etc/halina/settings.toml`
+-  command arguments
+
+The following variables can be used to configure the simulator and email report service:
 
 - `NATS_HOST`: NATS server host
 - `NATS_PORT`: NATS server port
-- `TELESCOPES`: List of telescope names included in HALina analysis.e.g. `'["jk15","zb08"]'` (JSON list)
-- `EMAILS_TO`: List of email addresses to send reports to `'["mail1@example.com","mail1@example.com"]'` (JSON list)
+- `TELESCOPES`: List of telescope names included in HALina analysis.e.g. `["jk15","zb08"]`
+- `EMAILS_TO`: List of email addresses to send reports to `["mail1@example.com","mail1@example.com"]`
 - `SMTP_HOST`: Server SMTP host name
 - `SMTP_PORT`: Server SMTP port
 - `SMTP_USERNAME`: SMTP server username 
@@ -55,37 +64,33 @@ The following environment variables can be used to configure the simulator and e
 - `FROM_NAME`: Sent emails FROM field display name, e.g. `HALina`
 - `SEND_AT`: UTC time at which the data collection process will be started. It is integer number representing hour.
 
-Note. It is important that List type variables are wrapped in `' '`.
-
-Example `.env` file:
+Example `settings.toml` file:
 
 ```text
-NATS_HOST=localhost
+NATS_HOST='localhost'
 NATS_PORT=4222
-
-TELESCOPES='["jk15","zb08"]'
-
-SMTP_HOST="smtp.example.com"
+TELESCOPES=['jk15','zb08']
+SMTP_HOST='smtp.example.com'
 SMTP_PORT=587
-SMTP_USERNAME="halina@example.com"
-SMTP_PASSWORD="abcdefg"
-EMAILS_TO='["mail1@example.com","mail1@example.com"]'
-FROM_EMAIL="noreplay@example.com"
-FROM_NAME="Halina"
+SMTP_USERNAME='halina@example.com'
+SMTP_PASSWORD='abcdefg'
+EMAILS_TO=['mail1@example.com','mail1@example.com']
+FROM_EMAIL='noreplay@example.com'
+FROM_NAME='Halina'
 SEND_AT=14
 ```
+Command arguments
+All parameters given as command arguments are read as a string and then parsed into JSON format. It is 
+important that parameters marked as JSON types, e.g. (JSON list), are provided in the correct format with the `""` 
+symbol inside if needed.
 
-If you are running the application not via Docker, the .env file is not loaded automatically. You must import it manually. 
-```bash
-env $(cat .env | xargs)
-```
-It is also possible to set environment variables manually one by one.
-
-It is also possible to configure the application by providing variable values directly as command options. For example: 
-
+For example
 ```bash
 poetry run services TELESCOPES='["jk15","zb08"]' NATS_PORT=4222
 ```
+
+WARNING! In some system shells, complex parameters, e.g. list type, set on command line may not work properly. 
+So, it is recommended to use the TOML file.
 
 ## Usage
 
