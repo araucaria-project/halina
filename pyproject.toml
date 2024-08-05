@@ -4,7 +4,9 @@ version = "0.1.10"
 description = "Heuristic Algorithmic Library..."
 authors = []
 readme = "README.md"
-packages = [{include = "halina", from = "src"}]
+packages = [
+    {include = "halina", from = "src"},
+    {include = "tests" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -22,3 +24,4 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 services = "src.halina.main:main"
 simulator = "simulator.main:run"
+tests = "tests.run_tests:main"
