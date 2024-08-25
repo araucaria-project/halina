@@ -3,6 +3,8 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from halina.service_shared_data import ServiceSharedData
+
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 # todo jak będzie potem dóżo serwisów to można uruchomić każdy w thread i by było "1 serwis = 1 thread i" w każdym
@@ -14,6 +16,7 @@ class Service(ABC):
     _NAME = "Default"
 
     def __init__(self):
+        self.shared_data = ServiceSharedData()
         self._main_task: Optional[asyncio.Task] = None
 
     @abstractmethod
