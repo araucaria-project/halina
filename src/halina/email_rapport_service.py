@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 class EmailRapportService(Service):
+    _NAME = "EmailRapportService"
+
     # time to retry sending email on night. After this night will be skipped.
     # for now is only waiting to connection to NATS
     _SKIPPING_TIME = 1800  # 30 min
