@@ -7,9 +7,11 @@ from collections import defaultdict
 from serverish.messenger import Messenger
 
 from configuration import GlobalConfig
+from halina.asyncio_util_functions import wait_for_psce
 from halina.email_rapport.email_builder import EmailBuilder
 from halina.email_rapport.email_sender import EmailSender
 from halina.email_rapport.telescope_data_collector import TelescopeDtaCollector
+from halina.nats_connection_service import NatsConnectionService
 from halina.service import Service
 from halina.email_rapport.data_collector_classes.data_object import DataObject
 from halina.date_utils import DateUtils
@@ -18,6 +20,10 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 class EmailRapportService(Service):
+    # time to retry sending email on night. After this night will be skipped.
+    # for now is only waiting to connection to NATS
+    _SKIPPING_TIME = 1800  # 30 min
+
     def __init__(self, utc_offset: int = 0):
         super().__init__()
         self._nats_messenger = Messenger()
@@ -58,15 +64,14 @@ class EmailRapportService(Service):
 
             while True:
                 now = datetime.datetime.now(datetime.UTC)
-                await asyncio.sleep((send_at_time-now).total_seconds())
-
+                await asyncio.sleep((send_at_time - now).total_seconds())
                 try:
                     start = datetime.datetime.now(datetime.UTC)
                     logger.debug(f"Start sending emails today: {now.date()}")
                     await self._collect_data_and_send()
                     stop = datetime.datetime.now(datetime.UTC)
                     logger.debug(f"Finish sending emails today: {now.date()}")
-                    working_time_minutes = (stop - start).total_seconds()/60
+                    working_time_minutes = (stop - start).total_seconds() / 60
                     logger.info(f"Email sender finish sending message today: {now.date()} . "
                                 f"Proses takes {working_time_minutes}")
                 except SendEmailException as e:
@@ -84,11 +89,31 @@ class EmailRapportService(Service):
     async def _on_stop(self) -> None:
         pass
 
+    async def _wait_to_open_nats(self, deadline: datetime.datetime) -> bool:
+        if self._nats_messenger.is_open:
+            return True
+        if not self.shared_data.get_events().is_exist(
+                NatsConnectionService.EVENT_REFRESH_NATS_CONNECTION) or not self.shared_data.get_events().is_exist(
+                NatsConnectionService.EVENT_NATS_CONNECTION_OPENED):
+            return False
+        self.shared_data.get_events().notify(NatsConnectionService.EVENT_REFRESH_NATS_CONNECTION)
+        time = (deadline-datetime.datetime.now(datetime.UTC)).total_seconds()
+        try:
+            await wait_for_psce(
+                self.shared_data.get_events().wait(NatsConnectionService.EVENT_NATS_CONNECTION_OPENED),
+                timeout=time)
+        except asyncio.TimeoutError:
+            pass
+        return self._nats_messenger.is_open
+
     async def _collect_data_and_send(self) -> None:
-        if not self._nats_messenger.is_open:
+        # Can't waiting infinity to send email from one night because this block other nights
+        deadline = datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=EmailRapportService._SKIPPING_TIME)
+        # waiting to connection to nats if not already open
+        r = await self._wait_to_open_nats(deadline=deadline)
+        if not r:
             logger.warning(f"Can not send email rapport because NATS connection is not open")
             raise SendEmailException()
-
         logger.info(f"Collecting data from telescopes: {self._telescopes}")
         telescopes: Dict[str, TelescopeDtaCollector] = {}
         if self._telescopes:
