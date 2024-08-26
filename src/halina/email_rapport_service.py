@@ -57,21 +57,19 @@ class EmailRapportService(Service):
 
     async def _main(self) -> None:
         try:
-            today_date = datetime.datetime.now(datetime.UTC).date()
-            send_at_time = datetime.datetime.combine(today_date, self._send_at_time, tzinfo=datetime.UTC)
-
+            today_date = datetime.datetime.now(datetime.timezone.utc).date()
+            send_at_time = datetime.datetime.combine(today_date, self._send_at_time, tzinfo=datetime.timezone.utc)
             # if we start application after sending time wait until next day
-            if send_at_time < datetime.datetime.now(datetime.UTC):
+            if send_at_time < datetime.datetime.now(datetime.timezone.utc):
                 send_at_time = send_at_time + datetime.timedelta(days=1)
-
             while True:
-                now = datetime.datetime.now(datetime.UTC)
+                now = datetime.datetime.now(datetime.timezone.utc)
                 await asyncio.sleep((send_at_time - now).total_seconds())
                 try:
-                    start = datetime.datetime.now(datetime.UTC)
+                    start = datetime.datetime.now(datetime.timezone.utc)
                     logger.debug(f"Start sending emails today: {now.date()}")
                     await self._collect_data_and_send()
-                    stop = datetime.datetime.now(datetime.UTC)
+                    stop = datetime.datetime.now(datetime.timezone.utc)
                     logger.debug(f"Finish sending emails today: {now.date()}")
                     working_time_minutes = (stop - start).total_seconds() / 60
                     logger.info(f"Email sender finish sending message today: {now.date()} . "
@@ -99,7 +97,7 @@ class EmailRapportService(Service):
                 NatsConnectionService.EVENT_NATS_CONNECTION_OPENED):
             return False
         self.shared_data.get_events().notify(NatsConnectionService.EVENT_REFRESH_NATS_CONNECTION)
-        time = (deadline-datetime.datetime.now(datetime.UTC)).total_seconds()
+        time = (deadline-datetime.datetime.now(datetime.timezone.utc)).total_seconds()
         try:
             await wait_for_psce(
                 self.shared_data.get_events().wait(NatsConnectionService.EVENT_NATS_CONNECTION_OPENED),
@@ -110,7 +108,7 @@ class EmailRapportService(Service):
 
     async def _collect_data_and_send(self) -> None:
         # Can't waiting infinity to send email from one night because this block other nights
-        deadline = datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=EmailRapportService._SKIPPING_TIME)
+        deadline = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=EmailRapportService._SKIPPING_TIME)
         # waiting to connection to nats if not already open
         r = await self._wait_to_open_nats(deadline=deadline)
         if not r:

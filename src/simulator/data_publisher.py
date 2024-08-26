@@ -44,7 +44,7 @@ class DataPublisher:
         logger.info(f"Generating random values for {num_copies} copies for telescope {telescope}")
         random_values = []
         for i in range(num_copies):
-            now = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=8)
+            now = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=8)
             date_obs = now.isoformat(sep='T', timespec='auto')
             jd = datetime_to_julian(now)
             values = {
@@ -61,7 +61,7 @@ class DataPublisher:
 
     @staticmethod
     def dt_utcnow_array():
-        now = datetime.datetime.now(datetime.UTC)
+        now = datetime.datetime.now(datetime.timezone.utc)
         utcnow_array = [now.year, now.month, now.day, now.hour, now.minute, now.second, now.microsecond]
         return utcnow_array
 
