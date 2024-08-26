@@ -34,6 +34,7 @@ class TelescopeDtaCollector:
 
         # collected data
         self.objects: Dict[str, DataObject] = {}  # used dict instead list is faster
+        self.downloaded_files: int = 0
         self.count_fits: int = 0
         self.count_fits_processed: int = 0
         self.malformed_raw_count: int = 0
@@ -237,8 +238,11 @@ class TelescopeDtaCollector:
     async def _process_pair(self, pair: dict):
         # todo nie rozpatrujemy sytuacji gdzie jest zdjęcie zdf bez raw
         try:
+            download = pair.get(TelescopeDtaCollector._STR_NAME_DOWNLOAD)
+            if download is not None:
+                self.downloaded_files += 1
+
             raw = pair.get(TelescopeDtaCollector._STR_NAME_RAW)
-            logger.info(f"\n\n {raw} \n\n")
             if not raw:
                 # if pair don't have raw photo that mean is no photo
                 return
@@ -271,4 +275,3 @@ class TelescopeDtaCollector:
         except Exception as e:
             logger.error(f"Error when extracting data from record: {e}")
             self.malformed_raw_count += 1
-

@@ -6,6 +6,6 @@ SMTP_USERNAME = 'aaa.fff'
 SMTP_PASSWORD = 'xxx'
 FROM_NAME = 'Halina from OCM'
 FROM_EMAIL = 'test@test.com'
-TELESCOPE_NAMES = ['jk15','zb08']
+TELESCOPES = ['jk15','zb08']
 EMAILS_TO = ['test2@test.com']
 SEND_AT = 14

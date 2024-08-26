@@ -12,7 +12,7 @@ class DateUtils:
     def today_midday() -> datetime:
         t = datetime.datetime.today()
         t = t.replace(hour=12, minute=0, second=0, microsecond=0)  # set yesterday at middle of the day
-        t = t + datetime.timedelta(hours=GlobalConfig.get(GlobalConfig.TIMEZONE))  # set local time
+        t = t + datetime.timedelta(hours=GlobalConfig.get(GlobalConfig.TIMEZONE, 0))  # set local time
         return t
 
     @staticmethod

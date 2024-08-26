@@ -115,6 +115,7 @@
         <table border="1">
           <tr>
             <th>Telescope</th>
+            <th>Downloaded Files</th>
             <th>Total FITS</th>
             <th>Processed FITS</th>
             <th>Malformed RAW</th>
@@ -123,6 +124,7 @@
           {% for telescope in telescope_data %}
           <tr>
             <td>{{ telescope.name }}</td>
+            <td>{{ telescope.downloaded_files }}</td>
             <td>{{ telescope.count_fits }}</td>
             <td>{{ telescope.count_fits_processed }}</td>
             <td>{{ telescope.malformed_raw_count }}</td>
