@@ -1,0 +1,18 @@
+# symlinik to /etc/systemd/system/halina.service
+# sudo systemctl enable halina
+# sudo systemctl start halina
+# sudo systemctl status halina
+
+[Unit]
+Description=Halina email night rapport service
+After=network.target
+
+[Service]
+User=poweruser
+WorkingDirectory=/home/poweruser/src/halina
+ExecStart=/home/poweruser/.local/bin/poetry run services
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
