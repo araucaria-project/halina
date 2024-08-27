@@ -6,19 +6,26 @@ from email.mime.text import MIMEText
 import os
 import aiofiles
 from typing import List, Dict, Any
+from definitions import RESOURCES_DIR
 from halina.email_rapport.data_collector_classes.data_object import DataObject
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 class EmailBuilder:
+    _FILENAME_LOGO_AKOND = "logo_akond.png"
+    _FILENAME_LOGO_CAMK_PAN = "logo_camk_pan.png"
+    _FILENAME_ARAUCARIA_LOGO = "araucaria_logo.png"
+    _EMAIL_TEMPLATE_NAME = "email_template_new.html"
+
     def __init__(self):
         self._subject: str = ""
         self._night: str = ""
         self._telescope_data: List[Dict[str, Any]] = []
         self._data_objects: Dict[str, DataObject] = {}
-        self._image_path: str = "src/halina/email_rapport/resources/zdjecie.png"
-        self._logo_path: str = "src/halina/email_rapport/resources/araucaria_logo.png"
+        self._logo_path: str = os.path.join(RESOURCES_DIR, EmailBuilder._FILENAME_ARAUCARIA_LOGO)
+        self._logo_camk_path: str = os.path.join(RESOURCES_DIR, EmailBuilder._FILENAME_LOGO_CAMK_PAN)
+        self._logo_akond_path: str = os.path.join(RESOURCES_DIR, EmailBuilder._FILENAME_LOGO_AKOND)
 
     def set_subject(self, subject: str) -> None:
         self._subject = subject
@@ -53,8 +60,8 @@ class EmailBuilder:
 
     async def build(self) -> MIMEMultipart:
         logger.info("Building the email.")
-        env = Environment(loader=FileSystemLoader(os.path.dirname(__file__)))
-        template = env.get_template("resources/email_template.html")
+        env = Environment(loader=FileSystemLoader(RESOURCES_DIR))
+        template = env.get_template(EmailBuilder._EMAIL_TEMPLATE_NAME)
         context = {
             'night': self._night,
             'telescope_data': self._telescope_data,
@@ -70,20 +77,31 @@ class EmailBuilder:
         message.attach(MIMEText(content, "html"))
         logger.info("HTML content attached to email.")
 
-        # async with aiofiles.open(self._image_path, 'rb') as img:
-        #     img_data = await img.read()
-        # image = MIMEImage(img_data)
-        # image.add_header('Content-ID', '<image1>')
-        # image.add_header('Content-Disposition', 'inline', filename="zdjecie.png")
-        # message.attach(image)
-
-        # Attach logo
+        # Attach logo araucaria
         async with aiofiles.open(self._logo_path, 'rb') as logo:
             logo_data = await logo.read()
         logo_image = MIMEImage(logo_data)
         logo_image.add_header('Content-ID', '<logo>')
-        logo_image.add_header('Content-Disposition', 'inline', filename="araucaria_logo.png")
+        logo_image.add_header('Content-Disposition', 'inline', filename=EmailBuilder._FILENAME_ARAUCARIA_LOGO)
         message.attach(logo_image)
-        logger.info("Logo image attached to email.")
+        logger.debug("Logo image attached to email.")
+
+        # Attach logo camk
+        async with aiofiles.open(self._logo_camk_path, 'rb') as logo:
+            logo_data = await logo.read()
+        logo_image = MIMEImage(logo_data)
+        logo_image.add_header('Content-ID', '<logo_camk>')
+        logo_image.add_header('Content-Disposition', 'inline', filename=EmailBuilder._FILENAME_LOGO_CAMK_PAN)
+        message.attach(logo_image)
+        logger.debug("Logo camk image attached to email.")
+
+        # Attach logo akond
+        async with aiofiles.open(self._logo_akond_path, 'rb') as logo:
+            logo_data = await logo.read()
+        logo_image = MIMEImage(logo_data)
+        logo_image.add_header('Content-ID', '<logo_akond>')
+        logo_image.add_header('Content-Disposition', 'inline', filename=EmailBuilder._FILENAME_LOGO_AKOND)
+        message.attach(logo_image)
+        logger.debug("Logo akond image attached to email.")
 
         return message

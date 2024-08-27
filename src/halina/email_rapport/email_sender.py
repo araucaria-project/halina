@@ -19,7 +19,6 @@ class EmailSender:
         user_name = GlobalConfig.get(GlobalConfig.SMTP_USERNAME)
         from_name = GlobalConfig.get(GlobalConfig.FROM_NAME)
 
-
         if not email_app_password:
             logger.error("Email app password is required but not set.")
             raise ValueError("Email app password is required but not set.")
