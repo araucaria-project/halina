@@ -7,6 +7,7 @@ from serverish.messenger import get_reader
 
 from halina.asyncio_util_functions import wait_for_psce
 from halina.date_utils import DateUtils
+from halina.email_rapport.data_collector_classes.data_type_fits import DataTypeFits
 from halina.email_rapport.data_collector_classes.data_object import DataObject
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
@@ -34,6 +35,7 @@ class TelescopeDtaCollector:
 
         # collected data
         self.objects: Dict[str, DataObject] = {}  # used dict instead list is faster
+        self.fits_group_type: Dict[str, DataTypeFits] = {}
         self.downloaded_files: int = 0
         self.count_fits: int = 0
         self.count_fits_processed: int = 0
@@ -230,7 +232,7 @@ class TelescopeDtaCollector:
                         await self._process_pair(pair)
             # process not completed fits pair (pair = raw + zdf)
             for id_, pair in self._fits_pair.items():
-                logger.info(f"Processing remaining pair for id: {id_}, pair: {pair}")
+                logger.debug(f"Processing remaining pair for id: {id_}, pair: {pair}")
                 await self._process_pair(pair)
             self._fits_pair = {}  # clear pairs
             logger.info(f"Final _fits_pair: {self._fits_pair}")
@@ -259,9 +261,28 @@ class TelescopeDtaCollector:
             # ----- Extract all important fields from RAW -----
             obj = raw.get("header", {}).get("OBJECT", None)
             filter_ = raw.get("header", {}).get("FILTER", None)
+            img_typ = raw.get("header", {}).get("IMAGETYP", None)
+            date = TelescopeDtaCollector._get_date_from_raw(raw.get("header", {}))
+
+            # ----- Process image type -----
+            typ_name = TelescopeDtaCollector._map_img_typ_to_typ_name(img_typ=img_typ)
+            if typ_name == 'flat':
+                if date < DateUtils.yesterday_midnight():
+                    typ_name = 'evening-flat'
+                else:
+                    typ_name = 'morning-flat'
+
+            gt = self.fits_group_type.get(typ_name, None)
+            if gt is not None:
+                gt.count += 1
+            else:
+                self.fits_group_type[typ_name] = DataTypeFits(name=typ_name, count=1)
+            if filter_ is not None:
+                gt.filters.add(filter_)  # add filter if not exist
+            logger.debug(f"Fits type {typ_name} count updated to: {gt.count}")
 
             # ----- Process objects -----
-            logger.info(f"Processing object: {obj}")
+            logger.debug(f"Processing object: {obj}")
             o = self.objects.get(obj, None)
             if o is not None:
                 logger.debug(f"Object {obj} found, current count: {o.count}")
@@ -282,10 +303,31 @@ class TelescopeDtaCollector:
             self.malformed_raw_count += 1
 
     @staticmethod
+    def _get_date_from_raw(header):
+        try:
+            jd = float(header.get("JD"))
+        except (ValueError, TypeError):
+            jd = None
+        return jd
+
+    @staticmethod
     def _validate_rav(raw: dict):
         obj = raw.get("header", {}).get("OBJECT", None)
-        filter_ = raw.get("header", {}).get("FILTER", None)
         # fits have to have some target (OBJECT)
         if not obj:
+            logger.info(f"Find malformed fits witch no key: OBJECT")
+            return False
+        obj = raw.get("header", {}).get("IMAGETYP", None)
+        if not obj:
+            logger.info(f"Find malformed fits witch no key: IMAGETYP")
+            return False
+        if TelescopeDtaCollector._get_date_from_raw(raw.get("header", {})) is None:
             return False
         return True
+
+    @staticmethod
+    def _map_img_typ_to_typ_name(img_typ: str) -> str:
+        out = img_typ.lower()
+        if out == "focusing":
+            out = "focus"
+        return out

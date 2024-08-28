@@ -18,7 +18,7 @@ class EmailBuilder:
     _FILENAME_ARAUCARIA_LOGO = "araucaria_logo.png"
     _FILENAME_LOGO_HALINA = "logo_HALina.png"
     _FILENAME_LOGO_OCM = "logo_ENG_granat_wypelniony_srodek.png"
-    _EMAIL_TEMPLATE_NAME = "email_template_new.html"
+    _EMAIL_TEMPLATE_NAME = "email_template.html"
 
     def __init__(self):
         self._subject: str = ""

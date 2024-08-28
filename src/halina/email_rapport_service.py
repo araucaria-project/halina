@@ -134,18 +134,15 @@ class EmailRapportService(Service):
         for tel in self._telescopes:
             telescope_info = {
                 'name': tel,
-                'downloaded_files' : telescopes[tel].downloaded_files,
+                'downloaded_files': telescopes[tel].downloaded_files,
                 'count_fits': telescopes[tel].count_fits,
                 'count_fits_processed': telescopes[tel].count_fits_processed,
                 'malformed_raw_count': telescopes[tel].malformed_raw_count,
-                'malformed_zdf_count': telescopes[tel].malformed_zdf_count
+                'malformed_zdf_count': telescopes[tel].malformed_zdf_count,
+                'objects': telescopes[tel].objects,
+                'fits_group_type': telescopes[tel].fits_group_type
             }
             telescope_data.append(telescope_info)
-            merged_objects = self.merge_data_objects(telescopes[tel].objects)
-            for key, value in merged_objects.items():
-                all_data_objects[key].name = value.name
-                all_data_objects[key].count += value.count
-                all_data_objects[key].filters.update(value.filters)
 
         # Build and send email
         night = self._format_night()
