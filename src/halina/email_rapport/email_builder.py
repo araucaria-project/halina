@@ -16,6 +16,8 @@ class EmailBuilder:
     _FILENAME_LOGO_AKOND = "logo_akond.png"
     _FILENAME_LOGO_CAMK_PAN = "logo_camk_pan.png"
     _FILENAME_ARAUCARIA_LOGO = "araucaria_logo.png"
+    _FILENAME_LOGO_HALINA = "logo_HALina.png"
+    _FILENAME_LOGO_OCM = "logo_ENG_granat_wypelniony_srodek.png"
     _EMAIL_TEMPLATE_NAME = "email_template_new.html"
 
     def __init__(self):
@@ -23,9 +25,6 @@ class EmailBuilder:
         self._night: str = ""
         self._telescope_data: List[Dict[str, Any]] = []
         self._data_objects: Dict[str, DataObject] = {}
-        self._logo_path: str = os.path.join(RESOURCES_DIR, EmailBuilder._FILENAME_ARAUCARIA_LOGO)
-        self._logo_camk_path: str = os.path.join(RESOURCES_DIR, EmailBuilder._FILENAME_LOGO_CAMK_PAN)
-        self._logo_akond_path: str = os.path.join(RESOURCES_DIR, EmailBuilder._FILENAME_LOGO_AKOND)
 
     def set_subject(self, subject: str) -> None:
         self._subject = subject
@@ -78,30 +77,29 @@ class EmailBuilder:
         logger.info("HTML content attached to email.")
 
         # Attach logo araucaria
-        async with aiofiles.open(self._logo_path, 'rb') as logo:
-            logo_data = await logo.read()
-        logo_image = MIMEImage(logo_data)
-        logo_image.add_header('Content-ID', '<logo>')
-        logo_image.add_header('Content-Disposition', 'inline', filename=EmailBuilder._FILENAME_ARAUCARIA_LOGO)
-        message.attach(logo_image)
-        logger.debug("Logo image attached to email.")
-
+        await EmailBuilder._add_logo_to_message(message=message, filename=EmailBuilder._FILENAME_ARAUCARIA_LOGO,
+                                                template_name="logo_araucaria")
         # Attach logo camk
-        async with aiofiles.open(self._logo_camk_path, 'rb') as logo:
-            logo_data = await logo.read()
-        logo_image = MIMEImage(logo_data)
-        logo_image.add_header('Content-ID', '<logo_camk>')
-        logo_image.add_header('Content-Disposition', 'inline', filename=EmailBuilder._FILENAME_LOGO_CAMK_PAN)
-        message.attach(logo_image)
-        logger.debug("Logo camk image attached to email.")
-
+        await EmailBuilder._add_logo_to_message(message=message, filename=EmailBuilder._FILENAME_LOGO_CAMK_PAN,
+                                                template_name="logo_camk")
         # Attach logo akond
-        async with aiofiles.open(self._logo_akond_path, 'rb') as logo:
-            logo_data = await logo.read()
-        logo_image = MIMEImage(logo_data)
-        logo_image.add_header('Content-ID', '<logo_akond>')
-        logo_image.add_header('Content-Disposition', 'inline', filename=EmailBuilder._FILENAME_LOGO_AKOND)
-        message.attach(logo_image)
-        logger.debug("Logo akond image attached to email.")
+        await EmailBuilder._add_logo_to_message(message=message, filename=EmailBuilder._FILENAME_LOGO_AKOND,
+                                                template_name="logo_akond")
+        # Attach logo HALina
+        await EmailBuilder._add_logo_to_message(message=message, filename=EmailBuilder._FILENAME_LOGO_HALINA,
+                                                template_name="logo_halina")
+        # Attach logo OCM
+        await EmailBuilder._add_logo_to_message(message=message, filename=EmailBuilder._FILENAME_LOGO_OCM,
+                                                template_name="logo_ocm")
 
         return message
+
+    @staticmethod
+    async def _add_logo_to_message(message: MIMEMultipart, filename: str, template_name: str):
+        async with aiofiles.open(os.path.join(RESOURCES_DIR, filename), 'rb') as logo:
+            logo_data = await logo.read()
+        logo_image = MIMEImage(logo_data)
+        logo_image.add_header('Content-ID', f'<{template_name}>')
+        logo_image.add_header('Content-Disposition', 'inline', filename=filename)
+        message.attach(logo_image)
+        logger.debug(f"Logo {template_name} image attached to email.")

@@ -250,28 +250,42 @@ class TelescopeDtaCollector:
             if zdf is not None:
                 self.count_fits_processed += 1
 
-            objs = raw.get("objects", {})
-            filter_ = raw.get("header", {}).get("FILTER", None)
-            logger.info(f"Processing objects: {objs}")
-            for k, v in objs.items():
-                obj_name = k
-                o = self.objects.get(obj_name, None)
-                if o is not None:
-                    logger.info(f"Object {obj_name} found, current count: {o.count}")
-                    o.count += 1
-                    if filter_ is not None:
-                        o.filters.add(filter_)  # add filter if not exist
-                else:
-                    logger.info(f"Object {obj_name} not found, creating new DataObject")
-                    o = DataObject(name=obj_name, count=1)
-                    if filter_ is not None:
-                        o.filters.add(filter_)
-                    self.objects[obj_name] = o
-                logger.info(f"Object {obj_name} count updated to: {o.count}")
+            # ----- RAW validate -----
+            valid_result = TelescopeDtaCollector._validate_rav(raw=raw)
+            if not valid_result:
+                self.malformed_raw_count += 1
+                return
             self.count_fits += 1
+            # ----- Extract all important fields from RAW -----
+            obj = raw.get("header", {}).get("OBJECT", None)
+            filter_ = raw.get("header", {}).get("FILTER", None)
+
+            # ----- Process objects -----
+            logger.info(f"Processing object: {obj}")
+            o = self.objects.get(obj, None)
+            if o is not None:
+                logger.debug(f"Object {obj} found, current count: {o.count}")
+                o.count += 1
+            else:
+                logger.debug(f"Object {obj} not found, creating new DataObject")
+                o = DataObject(name=obj, count=1)
+                self.objects[obj] = o
+            if filter_ is not None:
+                o.filters.add(filter_)  # add filter if not exist
+            logger.debug(f"Object {obj} count updated to: {o.count}")
+
             logger.info(f"Finished processing pair. Total fits count: {self.count_fits}")
         except (KeyboardInterrupt, asyncio.CancelledError, asyncio.TimeoutError):
             raise
         except Exception as e:
             logger.error(f"Error when extracting data from record: {e}")
             self.malformed_raw_count += 1
+
+    @staticmethod
+    def _validate_rav(raw: dict):
+        obj = raw.get("header", {}).get("OBJECT", None)
+        filter_ = raw.get("header", {}).get("FILTER", None)
+        # fits have to have some target (OBJECT)
+        if not obj:
+            return False
+        return True
