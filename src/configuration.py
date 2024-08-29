@@ -44,6 +44,7 @@ class GlobalConfig:
     FROM_NAME = "FROM_NAME"
     SMTP_PASSWORD = "SMTP_PASSWORD"
     SEND_AT = "SEND_AT"
+    SEND_AT_MIN = "SEND_AT_MIN"
 
     # dict of empty values. If someone will be overridden by not None value, this value will be return instead
     # value from config

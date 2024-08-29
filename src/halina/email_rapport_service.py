@@ -31,7 +31,8 @@ class EmailRapportService(Service):
         self._nats_messenger = Messenger()
         self._utc_offset: int = utc_offset
         self._telescopes: List[str] = GlobalConfig.get(GlobalConfig.TELESCOPES)
-        self._send_at_time = datetime.time(GlobalConfig.get(GlobalConfig.SEND_AT), 0)
+        self._send_at_time = datetime.time(GlobalConfig.get(GlobalConfig.SEND_AT),
+                                           GlobalConfig.get(GlobalConfig.SEND_AT_MIN))
 
     @staticmethod
     def _format_night() -> str:
