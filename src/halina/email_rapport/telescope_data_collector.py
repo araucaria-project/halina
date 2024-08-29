@@ -3,7 +3,8 @@ import logging
 from typing import Dict, Optional
 
 from pyaraucaria.date import datetime_to_julian
-from serverish.messenger import get_reader
+from serverish.base import MessengerReaderStopped
+from serverish.messenger import get_reader, single_read
 
 from halina.asyncio_util_functions import wait_for_psce
 from halina.date_utils import DateUtils
@@ -21,10 +22,12 @@ class TelescopeDtaCollector:
     _STR_NAME_DOWNLOAD = "download"
 
     def __init__(self, telescope_name: str = "", utc_offset: int = 0):
+        self._telescope_name = telescope_name.strip()
         self._utc_offset: int = utc_offset  # offset hour for time zones
-        self._download_stream: str = f"tic.status.{telescope_name.strip()}.download"
-        self._raw_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.raw"
-        self._zdf_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.zdf"
+        self._download_stream: str = f"tic.status.{self._telescope_name}.download"
+        self._raw_stream: str = f"tic.status.{self._telescope_name}.fits.pipeline.raw"
+        self._zdf_stream: str = f"tic.status.{self._telescope_name}.fits.pipeline.zdf"
+        self._telescope_settings_stream: str = f"tic.config.observatory"
 
         # {fits_id: dict(raw: raw_fits, zdf: zdf_fits)}
         self._fits_pair: Dict[str, dict] = {}
@@ -34,6 +37,7 @@ class TelescopeDtaCollector:
         self._finish_reading_streams: int = 0
 
         # collected data
+        self.color: str = ''
         self.objects: Dict[str, DataObject] = {}  # used dict instead list is faster
         self.fits_group_type: Dict[str, DataTypeFits] = {}
         self.downloaded_files: int = 0
@@ -203,6 +207,18 @@ class TelescopeDtaCollector:
             return False
         return True
 
+    async def _read_tel_info(self):
+        """
+        This method read information about telescope from nats stream from configuration OCM.
+        """
+        try:
+            record, meta = await single_read(self._telescope_settings_stream, wait=5)
+            color = (record.get('config', {}).get('telescopes', {}).get(self._telescope_name, {}).get('observatory', {})
+                     .get('style', {}).get('color', ''))
+            self.color = color
+        except (MessengerReaderStopped, asyncio.TimeoutError, AttributeError):
+            logger.warning(f"Can't load telescope settings from stream {self._telescope_settings_stream}")
+
     async def collect_data(self):
         logger.info(f"Start reading data from streams: {self._get_raw_stream()} & {self._get_zdf_stream()} "
                     f"& {self._get_download_stream()}")
@@ -210,8 +226,9 @@ class TelescopeDtaCollector:
         coros = [self._read_data_from_download(),
                  self._read_data_from_stream(self._get_raw_stream(), TelescopeDtaCollector._STR_NAME_RAW),
                  self._read_data_from_stream(self._get_zdf_stream(), TelescopeDtaCollector._STR_NAME_ZDF),
-                 self._evaluate_data()]
-        result = await asyncio.gather(*coros, return_exceptions=True)
+                 self._evaluate_data(),
+                 self._read_tel_info()]
+        await asyncio.gather(*coros, return_exceptions=True)
         logger.info(f"Finished reading data from streams. Read {self.count_fits} record")
 
     async def _evaluate_data(self):
@@ -238,6 +255,11 @@ class TelescopeDtaCollector:
             logger.info(f"Final _fits_pair: {self._fits_pair}")
 
     async def _process_pair(self, pair: dict):
+        """
+        This method processing data from fits after match it from all stream.
+
+        :param pair: dict witch data from all stream representing one fits
+        """
         # todo nie rozpatrujemy sytuacji gdzie jest zdjęcie zdf bez raw
         try:
             download = pair.get(TelescopeDtaCollector._STR_NAME_DOWNLOAD)

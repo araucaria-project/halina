@@ -217,13 +217,13 @@
                                                             {% for telescope in telescope_data %}
 
                                                             <tr class="tr-data">
-                                                                <th class="th-data th-data-telescope" colspan="3">{{ telescope.name }}</th>
+                                                                <th class="th-data th-data-telescope" colspan="3" style="background-color: {{ telescope.color }}">{{ telescope.name }}</th>
                                                             </tr>
                                                             <!-- Fits type section -->
                                                             <tr class="tr-data">
-                                                              <th class="th-data th-data-telescope">Fits type</th>
-                                                              <th class="th-data th-data-telescope">#Files</th>
-                                                              <th class="th-data th-data-telescope">Filters</th>
+                                                              <th class="th-data th-data-telescope" style="background-color: {{ telescope.color }}">Fits type</th>
+                                                              <th class="th-data th-data-telescope" style="background-color: {{ telescope.color }}">#Files</th>
+                                                              <th class="th-data th-data-telescope" style="background-color: {{ telescope.color }}">Filters</th>
                                                             </tr>
                                                             {% for fits_type in telescope.fits_group_type.values() %}
                                                             <tr class="tr-data">
@@ -234,9 +234,9 @@
                                                             {% endfor %}
                                                             <!-- Fits type section -->
                                                             <tr class="tr-data">
-                                                              <th class="th-data th-data-telescope">Object</th>
-                                                              <th class="th-data th-data-telescope">#Files</th>
-                                                              <th class="th-data th-data-telescope">Filters</th>
+                                                              <th class="th-data th-data-telescope" style="background-color: {{ telescope.color }}">Object</th>
+                                                              <th class="th-data th-data-telescope" style="background-color: {{ telescope.color }}">#Files</th>
+                                                              <th class="th-data th-data-telescope" style="background-color: {{ telescope.color }}">Filters</th>
                                                             </tr>
                                                             {% for obj in telescope.objects.values() %}
                                                             <tr class="tr-data">
