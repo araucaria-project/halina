@@ -298,7 +298,8 @@ class TelescopeDtaCollector:
             if gt is not None:
                 gt.count += 1
             else:
-                self.fits_group_type[typ_name] = DataTypeFits(name=typ_name, count=1)
+                gt = DataTypeFits(name=typ_name, count=1)
+                self.fits_group_type[typ_name] = gt
             if filter_ is not None:
                 gt.filters.add(filter_)  # add filter if not exist
             logger.debug(f"Fits type {typ_name} count updated to: {gt.count}")

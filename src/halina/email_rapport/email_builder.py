@@ -24,7 +24,6 @@ class EmailBuilder:
         self._subject: str = ""
         self._night: str = ""
         self._telescope_data: List[Dict[str, Any]] = []
-        self._data_objects: Dict[str, DataObject] = {}
 
     def set_subject(self, subject: str) -> None:
         self._subject = subject
@@ -49,14 +48,6 @@ class EmailBuilder:
         self.set_telescope_data(telescope_data)
         return self
 
-    def set_data_objects(self, data_objects: Dict[str, DataObject]) -> None:
-        self._data_objects = data_objects
-        logger.info(f"Data objects set.")
-
-    def data_objects(self, data_objects: Dict[str, DataObject]) -> 'EmailBuilder':
-        self.set_data_objects(data_objects)
-        return self
-
     async def build(self) -> MIMEMultipart:
         logger.info("Building the email.")
         env = Environment(loader=FileSystemLoader(RESOURCES_DIR))
@@ -64,7 +55,6 @@ class EmailBuilder:
         context = {
             'night': self._night,
             'telescope_data': self._telescope_data,
-            'data_objects': self._data_objects
         }
         content = template.render(context)
 

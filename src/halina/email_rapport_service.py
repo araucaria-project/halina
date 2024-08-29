@@ -132,8 +132,6 @@ class EmailRapportService(Service):
 
         # Prepare data for email
         telescope_data: List[Dict[str, int]] = []
-        all_data_objects: Dict[str, DataObject] = defaultdict(lambda: DataObject(name="", count=0, filters=set()))
-
         for tel in self._telescopes:
             telescope_info = {
                 'name': tel,
@@ -159,8 +157,7 @@ class EmailRapportService(Service):
             email_builder = (EmailBuilder()
                              .subject(f"Night Report - {night}")
                              .night(night)
-                             .telescope_data(telescope_data)
-                             .data_objects(all_data_objects))
+                             .telescope_data(telescope_data))
 
             email_message = await email_builder.build()
 
