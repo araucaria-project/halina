@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 class EmailBuilder:
-    _FILENAME_LOGO_AKOND = "logo_akond.png"
-    _FILENAME_LOGO_CAMK_PAN = "logo_camk_pan.png"
-    _FILENAME_ARAUCARIA_LOGO = "araucaria_logo.png"
-    _FILENAME_LOGO_HALINA = "logo_HALina.png"
-    _FILENAME_LOGO_OCM = "logo_ENG_granat_wypelniony_srodek.png"
+    _FILENAME_LOGO_AKOND = "logo_akond_compression.png"
+    _FILENAME_LOGO_CAMK_PAN = "logo_camk_pan_compression.png"
+    _FILENAME_ARAUCARIA_LOGO = "araucaria_logo_compression.png"
+    _FILENAME_LOGO_HALINA = "logo_HALina_compression.png"
+    _FILENAME_LOGO_OCM = "logo_ENG_granat_wypelniony_srodek_compression.png"
     _EMAIL_TEMPLATE_NAME = "email_template.html"
 
     def __init__(self):
@@ -86,7 +86,7 @@ class EmailBuilder:
 
     @staticmethod
     async def _add_logo_to_message(message: MIMEMultipart, filename: str, template_name: str):
-        async with aiofiles.open(os.path.join(RESOURCES_DIR, filename), 'rb') as logo:
+        async with aiofiles.open(os.path.join(RESOURCES_DIR, 'pictures', filename), 'rb') as logo:
             logo_data = await logo.read()
         logo_image = MIMEImage(logo_data)
         logo_image.add_header('Content-ID', f'<{template_name}>')
