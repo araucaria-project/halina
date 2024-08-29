@@ -180,7 +180,6 @@
                                                         <table class="table-data">
                                                           <tr class="tr-data">
                                                             <th class="th-data">Telescope</th>
-                                                            <th class="th-data">Downloaded Files</th>
                                                             <th class="th-data">Total FITS</th>
                                                             <th class="th-data">Processed FITS</th>
                                                             <th class="th-data">Malformed RAW</th>
@@ -189,7 +188,6 @@
                                                           {% for telescope in telescope_data %}
                                                           <tr class="tr-data">
                                                             <td class="td-data">{{ telescope.name }}</td>
-                                                            <td class="td-data">{{ telescope.downloaded_files }}</td>
                                                             <td class="td-data">{{ telescope.count_fits }}</td>
                                                             <td class="td-data">{{ telescope.count_fits_processed }}</td>
                                                             <td class="td-data">{{ telescope.malformed_raw_count }}</td>
