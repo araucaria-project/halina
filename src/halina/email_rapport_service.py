@@ -136,7 +136,6 @@ class EmailRapportService(Service):
             telescope_info = {
                 'name': tel,
                 'color': telescopes[tel].color,
-                'downloaded_files': telescopes[tel].downloaded_files,
                 'count_fits': telescopes[tel].count_fits,
                 'count_fits_processed': telescopes[tel].count_fits_processed,
                 'malformed_raw_count': telescopes[tel].malformed_raw_count,
