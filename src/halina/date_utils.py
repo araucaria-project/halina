@@ -19,3 +19,8 @@ class DateUtils:
     def yesterday_midday() -> datetime:
         yesterday = DateUtils.today_midday() - datetime.timedelta(days=1)
         return yesterday
+
+    @staticmethod
+    def yesterday_midnight() -> datetime:
+        midnight = DateUtils.today_midday() - datetime.timedelta(hours=12)
+        return midnight

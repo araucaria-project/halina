@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Night Report</title>
+    <style>
+        body, * {
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+
+        body {
+            padding: 2rem;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        p {
+            font-size: 16px;
+            color: #666;
+        }
+
+        h2 {
+            color: #333;
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        table {
+            max-width: 48rem;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 1rem auto 2rem;
+            font-size: 16px;
+            border-radius: 0.8rem;
+            overflow: hidden;
+            table-layout: fixed;
+        }
+
+        .description {
+            margin: 20px;
+        }
+
+        .description p {
+            padding: 0rem;
+        }
+
+        .container {
+            max-width: 64rem;
+            margin: 0 auto;
+            background: #e3f5ff;
+            border-radius: 1rem;
+            padding: 1.8rem 2rem;
+        }
+
+        table, th, td {
+            border: 1px solid #bdbdbd;
+        }
+
+        th, td {
+            padding: 4px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #117BB8;
+            color: #f0f0f0;
+        }
+
+        tr:hover {
+            background-color: #a4bac793;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        th, td {
+            width: calc(100% / 3);
+        }
+
+        .center img {
+            max-width: 100%;
+            border-radius: 0.5rem;
+        }
+
+        .logo {
+            margin: auto;
+            margin-bottom: 1rem;
+            width: 80px;
+            height: 80px;
+
+        }
+
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">
+      <img src="cid:logo_araucaria" alt="Logo" />
+    </div>
+    <div class="container">
+      <h1>Night Report</h1>
+      <h3 class="center">{{ night }}</h3>
+      <div class="description">
+        <table border="1">
+          <tr>
+            <th>Telescope</th>
+            <th>Downloaded Files</th>
+            <th>Total FITS</th>
+            <th>Processed FITS</th>
+            <th>Malformed RAW</th>
+            <th>Malformed ZDF</th>
+          </tr>
+          {% for telescope in telescope_data %}
+          <tr>
+            <td>{{ telescope.name }}</td>
+            <td>{{ telescope.downloaded_files }}</td>
+            <td>{{ telescope.count_fits }}</td>
+            <td>{{ telescope.count_fits_processed }}</td>
+            <td>{{ telescope.malformed_raw_count }}</td>
+            <td>{{ telescope.malformed_zdf_count }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+      <h2>Data Table</h2>
+      <table border="1">
+        <tr>
+          <th>Object</th>
+          <th>#Files</th>
+          <th>Filters</th>
+        </tr>
+        {% for obj in data_objects.values() %}
+        <tr>
+          <td>{{ obj.name }}</td>
+          <td>{{ obj.count }}</td>
+          <td>{{ obj.filters | join(', ') }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+<!--      <div class="center">-->
+<!--        <img src="cid:image1" alt="Zdjęcie" />-->
+<!--      </div>-->
+    </div>
+</body>
+</html>
+</html>

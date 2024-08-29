@@ -3,10 +3,12 @@ import logging
 from typing import Dict, Optional
 
 from pyaraucaria.date import datetime_to_julian
-from serverish.messenger import get_reader
+from serverish.base import MessengerReaderStopped
+from serverish.messenger import get_reader, single_read
 
 from halina.asyncio_util_functions import wait_for_psce
 from halina.date_utils import DateUtils
+from halina.email_rapport.data_collector_classes.data_type_fits import DataTypeFits
 from halina.email_rapport.data_collector_classes.data_object import DataObject
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
@@ -20,10 +22,12 @@ class TelescopeDtaCollector:
     _STR_NAME_DOWNLOAD = "download"
 
     def __init__(self, telescope_name: str = "", utc_offset: int = 0):
+        self._telescope_name = telescope_name.strip()
         self._utc_offset: int = utc_offset  # offset hour for time zones
-        self._download_stream: str = f"tic.status.{telescope_name.strip()}.download"
-        self._raw_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.raw"
-        self._zdf_stream: str = f"tic.status.{telescope_name.strip()}.fits.pipeline.zdf"
+        self._download_stream: str = f"tic.status.{self._telescope_name}.download"
+        self._raw_stream: str = f"tic.status.{self._telescope_name}.fits.pipeline.raw"
+        self._zdf_stream: str = f"tic.status.{self._telescope_name}.fits.pipeline.zdf"
+        self._telescope_settings_stream: str = f"tic.config.observatory"
 
         # {fits_id: dict(raw: raw_fits, zdf: zdf_fits)}
         self._fits_pair: Dict[str, dict] = {}
@@ -33,7 +37,9 @@ class TelescopeDtaCollector:
         self._finish_reading_streams: int = 0
 
         # collected data
+        self.color: str = ''
         self.objects: Dict[str, DataObject] = {}  # used dict instead list is faster
+        self.fits_group_type: Dict[str, DataTypeFits] = {}
         self.downloaded_files: int = 0
         self.count_fits: int = 0
         self.count_fits_processed: int = 0
@@ -201,6 +207,18 @@ class TelescopeDtaCollector:
             return False
         return True
 
+    async def _read_tel_info(self):
+        """
+        This method read information about telescope from nats stream from configuration OCM.
+        """
+        try:
+            record, meta = await single_read(self._telescope_settings_stream, wait=5)
+            color = (record.get('config', {}).get('telescopes', {}).get(self._telescope_name, {}).get('observatory', {})
+                     .get('style', {}).get('color', ''))
+            self.color = color
+        except (MessengerReaderStopped, asyncio.TimeoutError, AttributeError):
+            logger.warning(f"Can't load telescope settings from stream {self._telescope_settings_stream}")
+
     async def collect_data(self):
         logger.info(f"Start reading data from streams: {self._get_raw_stream()} & {self._get_zdf_stream()} "
                     f"& {self._get_download_stream()}")
@@ -208,8 +226,9 @@ class TelescopeDtaCollector:
         coros = [self._read_data_from_download(),
                  self._read_data_from_stream(self._get_raw_stream(), TelescopeDtaCollector._STR_NAME_RAW),
                  self._read_data_from_stream(self._get_zdf_stream(), TelescopeDtaCollector._STR_NAME_ZDF),
-                 self._evaluate_data()]
-        result = await asyncio.gather(*coros, return_exceptions=True)
+                 self._evaluate_data(),
+                 self._read_tel_info()]
+        await asyncio.gather(*coros, return_exceptions=True)
         logger.info(f"Finished reading data from streams. Read {self.count_fits} record")
 
     async def _evaluate_data(self):
@@ -230,12 +249,17 @@ class TelescopeDtaCollector:
                         await self._process_pair(pair)
             # process not completed fits pair (pair = raw + zdf)
             for id_, pair in self._fits_pair.items():
-                logger.info(f"Processing remaining pair for id: {id_}, pair: {pair}")
+                logger.debug(f"Processing remaining pair for id: {id_}, pair: {pair}")
                 await self._process_pair(pair)
             self._fits_pair = {}  # clear pairs
             logger.info(f"Final _fits_pair: {self._fits_pair}")
 
     async def _process_pair(self, pair: dict):
+        """
+        This method processing data from fits after match it from all stream.
+
+        :param pair: dict witch data from all stream representing one fits
+        """
         # todo nie rozpatrujemy sytuacji gdzie jest zdjęcie zdf bez raw
         try:
             download = pair.get(TelescopeDtaCollector._STR_NAME_DOWNLOAD)
@@ -250,28 +274,82 @@ class TelescopeDtaCollector:
             if zdf is not None:
                 self.count_fits_processed += 1
 
-            objs = raw.get("objects", {})
-            filter_ = raw.get("header", {}).get("FILTER", None)
-            logger.info(f"Processing objects: {objs}")
-            for k, v in objs.items():
-                obj_name = k
-                o = self.objects.get(obj_name, None)
-                if o is not None:
-                    logger.info(f"Object {obj_name} found, current count: {o.count}")
-                    o.count += 1
-                    if filter_ is not None:
-                        o.filters.add(filter_)  # add filter if not exist
-                else:
-                    logger.info(f"Object {obj_name} not found, creating new DataObject")
-                    o = DataObject(name=obj_name, count=1)
-                    if filter_ is not None:
-                        o.filters.add(filter_)
-                    self.objects[obj_name] = o
-                logger.info(f"Object {obj_name} count updated to: {o.count}")
+            # ----- RAW validate -----
+            valid_result = TelescopeDtaCollector._validate_rav(raw=raw)
+            if not valid_result:
+                self.malformed_raw_count += 1
+                return
             self.count_fits += 1
+            # ----- Extract all important fields from RAW -----
+            obj = raw.get("header", {}).get("OBJECT", None)
+            filter_ = raw.get("header", {}).get("FILTER", None)
+            img_typ = raw.get("header", {}).get("IMAGETYP", None)
+            date = TelescopeDtaCollector._get_date_from_raw(raw.get("header", {}))
+
+            # ----- Process image type -----
+            typ_name = TelescopeDtaCollector._map_img_typ_to_typ_name(img_typ=img_typ)
+            if typ_name == 'flat':
+                if date < DateUtils.yesterday_midnight():
+                    typ_name = 'evening-flat'
+                else:
+                    typ_name = 'morning-flat'
+
+            gt = self.fits_group_type.get(typ_name, None)
+            if gt is not None:
+                gt.count += 1
+            else:
+                self.fits_group_type[typ_name] = DataTypeFits(name=typ_name, count=1)
+            if filter_ is not None:
+                gt.filters.add(filter_)  # add filter if not exist
+            logger.debug(f"Fits type {typ_name} count updated to: {gt.count}")
+
+            # ----- Process objects -----
+            logger.debug(f"Processing object: {obj}")
+            o = self.objects.get(obj, None)
+            if o is not None:
+                logger.debug(f"Object {obj} found, current count: {o.count}")
+                o.count += 1
+            else:
+                logger.debug(f"Object {obj} not found, creating new DataObject")
+                o = DataObject(name=obj, count=1)
+                self.objects[obj] = o
+            if filter_ is not None:
+                o.filters.add(filter_)  # add filter if not exist
+            logger.debug(f"Object {obj} count updated to: {o.count}")
+
             logger.info(f"Finished processing pair. Total fits count: {self.count_fits}")
         except (KeyboardInterrupt, asyncio.CancelledError, asyncio.TimeoutError):
             raise
         except Exception as e:
             logger.error(f"Error when extracting data from record: {e}")
             self.malformed_raw_count += 1
+
+    @staticmethod
+    def _get_date_from_raw(header):
+        try:
+            jd = float(header.get("JD"))
+        except (ValueError, TypeError):
+            jd = None
+        return jd
+
+    @staticmethod
+    def _validate_rav(raw: dict):
+        obj = raw.get("header", {}).get("OBJECT", None)
+        # fits have to have some target (OBJECT)
+        if not obj:
+            logger.info(f"Find malformed fits witch no key: OBJECT")
+            return False
+        obj = raw.get("header", {}).get("IMAGETYP", None)
+        if not obj:
+            logger.info(f"Find malformed fits witch no key: IMAGETYP")
+            return False
+        if TelescopeDtaCollector._get_date_from_raw(raw.get("header", {})) is None:
+            return False
+        return True
+
+    @staticmethod
+    def _map_img_typ_to_typ_name(img_typ: str) -> str:
+        out = img_typ.lower()
+        if out == "focusing":
+            out = "focus"
+        return out

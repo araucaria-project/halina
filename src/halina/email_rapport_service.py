@@ -41,7 +41,8 @@ class EmailRapportService(Service):
         if yesterday_midday.month == today_midday.month:
             return f"{yesterday_midday.day}-{today_midday.day} {yesterday_midday.strftime('%b %Y')}"
         else:
-            return f"{yesterday_midday.day} {yesterday_midday.strftime('%b')} - {today_midday.day} {today_midday.strftime('%b %Y')}"
+            return (f"{yesterday_midday.day} {yesterday_midday.strftime('%b')} - {today_midday.day} "
+                    f"{today_midday.strftime('%b %Y')}")
 
     @staticmethod
     def merge_data_objects(objects: Dict[str, DataObject]) -> Dict[str, DataObject]:
@@ -97,7 +98,7 @@ class EmailRapportService(Service):
                 NatsConnectionService.EVENT_NATS_CONNECTION_OPENED):
             return False
         self.shared_data.get_events().notify(NatsConnectionService.EVENT_REFRESH_NATS_CONNECTION)
-        time = (deadline-datetime.datetime.now(datetime.timezone.utc)).total_seconds()
+        time = (deadline - datetime.datetime.now(datetime.timezone.utc)).total_seconds()
         try:
             await wait_for_psce(
                 self.shared_data.get_events().wait(NatsConnectionService.EVENT_NATS_CONNECTION_OPENED),
@@ -108,7 +109,8 @@ class EmailRapportService(Service):
 
     async def _collect_data_and_send(self) -> None:
         # Can't waiting infinity to send email from one night because this block other nights
-        deadline = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=EmailRapportService._SKIPPING_TIME)
+        deadline = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+            seconds=EmailRapportService._SKIPPING_TIME)
         # waiting to connection to nats if not already open
         r = await self._wait_to_open_nats(deadline=deadline)
         if not r:
@@ -134,18 +136,16 @@ class EmailRapportService(Service):
         for tel in self._telescopes:
             telescope_info = {
                 'name': tel,
-                'downloaded_files' : telescopes[tel].downloaded_files,
+                'color': telescopes[tel].color,
+                'downloaded_files': telescopes[tel].downloaded_files,
                 'count_fits': telescopes[tel].count_fits,
                 'count_fits_processed': telescopes[tel].count_fits_processed,
                 'malformed_raw_count': telescopes[tel].malformed_raw_count,
-                'malformed_zdf_count': telescopes[tel].malformed_zdf_count
+                'malformed_zdf_count': telescopes[tel].malformed_zdf_count,
+                'objects': telescopes[tel].objects,
+                'fits_group_type': telescopes[tel].fits_group_type
             }
             telescope_data.append(telescope_info)
-            merged_objects = self.merge_data_objects(telescopes[tel].objects)
-            for key, value in merged_objects.items():
-                all_data_objects[key].name = value.name
-                all_data_objects[key].count += value.count
-                all_data_objects[key].filters.update(value.filters)
 
         # Build and send email
         night = self._format_night()
