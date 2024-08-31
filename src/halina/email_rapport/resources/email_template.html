@@ -85,7 +85,8 @@
 
         h1, h2, h3, h4, h5, h6, p, th{
             font-family: Helvetica, Arial, sans-serif;
-            font-weight: normal;}
+            font-weight: normal;
+            colour: #000000}
 
         .table-data  {
             max-width: 48rem;
@@ -219,9 +220,9 @@
                                                             </tr>
                                                             <!-- Fits type section -->
                                                             <tr class="tr-data">
-                                                              <th class="th-data th-data-telescope" style="background-color: {{ telescope.color }}">Fits type</th>
-                                                              <th class="th-data th-data-telescope" style="background-color: {{ telescope.color }}">#Files</th>
-                                                              <th class="th-data th-data-telescope" style="background-color: {{ telescope.color }}">Filters</th>
+                                                              <th class="th-data th-data-telescope th-data-small" style="background-color: {{ telescope.color }}">Fits type</th>
+                                                              <th class="th-data th-data-telescope th-data-small" style="background-color: {{ telescope.color }}">#Files</th>
+                                                              <th class="th-data th-data-telescope th-data-small" style="background-color: {{ telescope.color }}">Filters</th>
                                                             </tr>
                                                             {% for fits_type in telescope.fits_group_type.values() %}
                                                             <tr class="tr-data">
@@ -232,9 +233,9 @@
                                                             {% endfor %}
                                                             <!-- Fits type section -->
                                                             <tr class="tr-data">
-                                                              <th class="th-data th-data-telescope" style="background-color: {{ telescope.color }}">Object</th>
-                                                              <th class="th-data th-data-telescope" style="background-color: {{ telescope.color }}">#Files</th>
-                                                              <th class="th-data th-data-telescope" style="background-color: {{ telescope.color }}">Filters</th>
+                                                              <th class="th-data th-data-telescope th-data-small" style="background-color: {{ telescope.color }}">Object</th>
+                                                              <th class="th-data th-data-telescope th-data-small" style="background-color: {{ telescope.color }}">#Files</th>
+                                                              <th class="th-data th-data-telescope th-data-small" style="background-color: {{ telescope.color }}">Filters</th>
                                                             </tr>
                                                             {% for obj in telescope.objects.values() %}
                                                             <tr class="tr-data">
@@ -250,43 +251,89 @@
                                                 </tr>
                                             </tbody>
                                         </table>
+                                        <hr>
+                                        <!-- Weather Table -->
+                                        <table class="table-row">
+                                            <tbody>
+                                            <tr>
+                                                <th>
+                                                    <h6 class="text-center">Weather Conditions</h6>
+                                                </th>
+                                            </tr>
+                                                <tr>
+                                                    <th>
+                                                        <!-- Weather charts -->
+                                                        <div class="center">
+                                                        <table align="center" class="float-center">
+                                                            <tbody><tr>
+                                                                <td>
+                                                                    <table>
+                                                                        <tbody>
+                                                                            <tr>
+                                                                                <th class="menu-item float-center">
+                                                                                    <a href=""><img src="cid:wind_chart" width="400" height="400" style="object-fit: cover; height: auto; max-width: 100%;" alt="Wind Chart"></a>
+                                                                                </th>
+                                                                                <th class="menu-item float-center">
+                                                                                    <a href=""><img src="cid:temperature_chart" width="400" height="400" style="object-fit: cover; height: auto; max-width: 100%;" alt="Temperature Chart"></a>
+                                                                                </th>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <th class="menu-item float-center">
+                                                                                    <a href=""><img src="cid:humidity_chart" width="400" height="400" style="object-fit: cover; height: auto; max-width: 100%;" alt="Humidity hart"></a>
+                                                                                </th>
+                                                                                <th class="menu-item float-center">
+                                                                                    <a href=""><img src="cid:pressure_chart" width="400" height="400" style="object-fit: cover; height: auto; max-width: 100%;" alt="Pressure Chart"></a>
+                                                                                </th>
+                                                                            </tr>
+                                                                        </tbody>
+                                                                    </table>
+                                                                </td>
+                                                            </tr></tbody>
+                                                        </table>
+                                                    </div>
+
+                                                    </th>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        <hr>
                                         <!-- Footer -->
                                         <table class="row collapsed footer">
                                             <tbody><tr>
-                                              <th>
-                                                  <table class="table-spacer">
-                                                      <tbody><tr>
-                                                          <td class="table-spacer-td" style="font-size:16px;line-height:16px;">&nbsp;</td>
-                                                      </tr></tbody>
-                                                  </table>
-                                                  <p class="text-center">@copywrite araucaria </p>
-                                                  <p class="text-center footer-clause">This email was generated automatically based on data collected during the last night of observations at the Polish astronomical observatory Cerro Murphy. Please do not reply to it. If you wish to cancel your subscription, please contact one of the following people: mkalusz@camk.edu.pl | mgorski@camk.edu.pl | mkicia@camk.edu.pl | elasek@akond.com</p>
+                                                <th>
+                                                    <table class="table-spacer">
+                                                        <tbody><tr>
+                                                            <td class="table-spacer-td" style="font-size:16px;line-height:16px;">&nbsp;</td>
+                                                        </tr></tbody>
+                                                    </table>
+                                                    <p class="text-center">@copyright araucaria </p>
+                                                    <p class="text-center footer-clause">This email was generated automatically based on data collected during the last night of observations at the Polish astronomical observatory Cerro Murphy. Please do not reply to it. If you wish to cancel your subscription, please contact one of the following people: mkalusz@camk.edu.pl | mgorski@camk.edu.pl | mkicia@camk.edu.pl | elasek@akond.com</p>
 
-                                                  <div class="center">
-                                                      <table align="center" class="float-center">
-                                                          <tbody><tr>
-                                                              <td>
-                                                                  <table>
-                                                                      <tbody><tr>
-                                                                          <th class="menu-item float-center">
-                                                                              <a href=""><img src="cid:logo_halina" width="300" height="250" style="object-fit: cover; height: auto; max-width: 50%;" alt="Logo HALina"></a>
-                                                                          </th>
-                                                                          <th class="menu-item float-center">
-                                                                              <a href=""><img src="cid:logo_araucaria" width="300" height="250" style="object-fit: cover; height: auto; max-width: 50%;" alt="Logo Araucaria"></a>
-                                                                          </th>
-                                                                          <th class="menu-item float-center">
-                                                                              <a href=""><img src="cid:logo_camk" width="300" height="250" style="object-fit: cover; height: auto; max-width: 50%;" alt="Logo CAMK PAN"></a>
-                                                                          </th>
-                                                                          <th class="menu-item float-center">
-                                                                              <a href=""><img src="cid:logo_akond" width="300" height="250" style="object-fit: cover; height: auto; max-width: 50%;" alt="Logo Akond Lab"></a>
-                                                                          </th>
-                                                                      </tr>
-                                                                      </tbody></table>
-                                                              </td>
-                                                          </tr>
-                                                          </tbody></table>
-                                                  </div>
-                                              </th>
+                                                    <div class="center">
+                                                        <table align="center" class="float-center">
+                                                            <tbody><tr>
+                                                                <td>
+                                                                    <table>
+                                                                        <tbody><tr>
+                                                                            <th class="menu-item float-center">
+                                                                                <a href=""><img src="cid:logo_halina" width="300" height="250" style="object-fit: cover; height: auto; max-width: 50%;" alt="Logo HALina"></a>
+                                                                            </th>
+                                                                            <th class="menu-item float-center">
+                                                                                <a href=""><img src="cid:logo_araucaria" width="300" height="250" style="object-fit: cover; height: auto; max-width: 50%;" alt="Logo Araucaria"></a>
+                                                                            </th>
+                                                                            <th class="menu-item float-center">
+                                                                                <a href=""><img src="cid:logo_camk" width="300" height="250" style="object-fit: cover; height: auto; max-width: 50%;" alt="Logo CAMK PAN"></a>
+                                                                            </th>
+                                                                            <th class="menu-item float-center">
+                                                                                <a href=""><img src="cid:logo_akond" width="300" height="250" style="object-fit: cover; height: auto; max-width: 50%;" alt="Logo Akond Lab"></a>
+                                                                            </th>
+                                                                        </tr></tbody>
+                                                                    </table>
+                                                                </td>
+                                                            </tr></tbody>
+                                                        </table>
+                                                    </div>
+                                                </th>
                                               <th class="expander"></th>
                                             </tr></tbody>
                                         </table>

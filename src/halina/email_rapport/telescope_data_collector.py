@@ -69,6 +69,7 @@ class TelescopeDtaCollector:
 
     async def _read_data_from_stream(self, stream: str, main_key: str):
         yesterday_midday = DateUtils.yesterday_midday()
+        today_midday = DateUtils.today_midday()
         reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
         try:
             await reader.open()
@@ -97,10 +98,10 @@ class TelescopeDtaCollector:
                     logger.info(f"The read record from stream {stream} has wrong format: JD")
                     self._count_malformed_fits(main_key)
                     continue
-                jd_yesterday_midday = datetime_to_julian(yesterday_midday)
+                jd_today_midday = datetime_to_julian(today_midday)
                 # if the difference between the beginning of the observation and the date of observation is greater
                 # than 1, it means that the day has passed and there is another night
-                if (jd - jd_yesterday_midday) >= 1:
+                if (jd_today_midday - jd) >= 1:
                     break
                 async with self._fp_condition:
                     if self._fits_pair.get(fits_id, None) is None:
@@ -213,7 +214,7 @@ class TelescopeDtaCollector:
             # ----- Process image type -----
             typ_name = TelescopeDtaCollector._map_img_typ_to_typ_name(img_typ=img_typ)
             if typ_name == 'flat':
-                if date < DateUtils.yesterday_midnight():
+                if date < datetime_to_julian(DateUtils.yesterday_midnight()):
                     typ_name = 'evening-flat'
                 else:
                     typ_name = 'morning-flat'
@@ -227,20 +228,20 @@ class TelescopeDtaCollector:
             if filter_ is not None:
                 gt.filters.add(filter_)  # add filter if not exist
             logger.debug(f"Fits type {typ_name} count updated to: {gt.count}")
-
             # ----- Process objects -----
-            logger.debug(f"Processing object: {obj}")
-            o = self.objects.get(obj, None)
-            if o is not None:
-                logger.debug(f"Object {obj} found, current count: {o.count}")
-                o.count += 1
-            else:
-                logger.debug(f"Object {obj} not found, creating new DataObject")
-                o = DataObject(name=obj, count=1)
-                self.objects[obj] = o
-            if filter_ is not None:
-                o.filters.add(filter_)  # add filter if not exist
-            logger.debug(f"Object {obj} count updated to: {o.count}")
+            if typ_name == "science":
+                logger.debug(f"Processing object: {obj}")
+                o = self.objects.get(obj, None)
+                if o is not None:
+                    logger.debug(f"Object {obj} found, current count: {o.count}")
+                    o.count += 1
+                else:
+                    logger.debug(f"Object {obj} not found, creating new DataObject")
+                    o = DataObject(name=obj, count=1)
+                    self.objects[obj] = o
+                if filter_ is not None:
+                    o.filters.add(filter_)  # add filter if not exist
+                logger.debug(f"Object {obj} count updated to: {o.count}")
 
             logger.info(f"Finished processing pair. Total fits count: {self.count_fits}")
         except (KeyboardInterrupt, asyncio.CancelledError, asyncio.TimeoutError):
