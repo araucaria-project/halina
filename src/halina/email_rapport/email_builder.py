@@ -24,6 +24,10 @@ class EmailBuilder:
         self._subject: str = ""
         self._night: str = ""
         self._telescope_data: List[Dict[str, Any]] = []
+        self._wind_chart = None
+        self._temperature_chart = None
+        self._pressure_hart = None
+        self._humidity_hart = None
 
     def set_subject(self, subject: str) -> None:
         self._subject = subject
@@ -48,6 +52,34 @@ class EmailBuilder:
         self.set_telescope_data(telescope_data)
         return self
 
+    def set_wind_chart(self, chart: bytes):
+        self._wind_chart = chart
+
+    def wind_chart(self, chart: bytes):
+        self.set_wind_chart(chart)
+        return self
+
+    def set_temperature_chart(self, chart: bytes):
+        self._temperature_chart = chart
+
+    def temperature_chart(self, chart: bytes):
+        self.set_temperature_chart(chart)
+        return self
+
+    def set_pressure_hart(self, chart: bytes):
+        self._pressure_hart = chart
+
+    def pressure_hart(self, chart: bytes):
+        self.set_pressure_hart(chart)
+        return self
+
+    def set_humidity_hart(self, chart: bytes):
+        self._humidity_hart = chart
+
+    def humidity_hart(self, chart: bytes):
+        self.set_humidity_hart(chart)
+        return self
+
     async def build(self) -> MIMEMultipart:
         logger.info("Building the email.")
         env = Environment(loader=FileSystemLoader(RESOURCES_DIR))
@@ -66,6 +98,24 @@ class EmailBuilder:
         message.attach(MIMEText(content, "html"))
         logger.info("HTML content attached to email.")
 
+        logger.info("Weather charts attached to email.")
+        # Attach wind chart
+        await EmailBuilder._add_chart_to_message(message=message, chart=self._wind_chart,
+                                                 chart_name="wind_chart")
+
+        # Attach temperature chart
+        await EmailBuilder._add_chart_to_message(message=message, chart=self._temperature_chart,
+                                                 chart_name="temperature_chart")
+
+        # Attach humidity chart
+        await EmailBuilder._add_chart_to_message(message=message, chart=self._humidity_hart,
+                                                 chart_name="humidity_chart")
+
+        # Attach pressure chart
+        await EmailBuilder._add_chart_to_message(message=message, chart=self._pressure_hart,
+                                                 chart_name="pressure_chart")
+
+        logger.info("Logos charts attached to email.")
         # Attach logo araucaria
         await EmailBuilder._add_logo_to_message(message=message, filename=EmailBuilder._FILENAME_ARAUCARIA_LOGO,
                                                 template_name="logo_araucaria")
@@ -93,3 +143,16 @@ class EmailBuilder:
         logo_image.add_header('Content-Disposition', 'inline', filename=filename)
         message.attach(logo_image)
         logger.debug(f"Logo {template_name} image attached to email.")
+
+    @staticmethod
+    async def _add_chart_to_message(message: MIMEMultipart, chart: bytes, chart_name: str):
+        if chart is None:
+            logger.warning(f"Weather chart is None. Char name: {chart_name}")
+        try:
+            chart_image = MIMEImage(chart)
+        except Exception as e:
+            logger.error(e)
+            raise
+        chart_image.add_header('Content-ID', f'{chart_name}')
+        chart_image.add_header('Content-Disposition', 'inline', filename=f"{chart_name}.png")
+        message.attach(chart_image)

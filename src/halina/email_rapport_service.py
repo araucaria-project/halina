@@ -11,6 +11,8 @@ from halina.asyncio_util_functions import wait_for_psce
 from halina.email_rapport.email_builder import EmailBuilder
 from halina.email_rapport.email_sender import EmailSender
 from halina.email_rapport.telescope_data_collector import TelescopeDtaCollector
+from halina.email_rapport.weather_chart_builder import WeatherChartBuilder
+from halina.email_rapport.weather_data_collector import WeatherDataCollector
 from halina.nats_connection_service import NatsConnectionService
 from halina.service import Service
 from halina.email_rapport.data_collector_classes.data_object import DataObject
@@ -123,7 +125,11 @@ class EmailRapportService(Service):
             for tel in self._telescopes:
                 telescopes[tel] = TelescopeDtaCollector(telescope_name=tel, utc_offset=self._utc_offset)
 
+        # weather collector
+        wdc = WeatherDataCollector()
+
         coros = [i.collect_data() for i in telescopes.values()]
+        coros.append(wdc.collect_data())
         await asyncio.gather(*coros, return_exceptions=True)
 
         logger.info(f"Scanning stream for fits completed.")
@@ -152,14 +158,23 @@ class EmailRapportService(Service):
         if len(email_recipients) == 0:
             logger.info(f"No recipient specified.")
 
+        # build charts
+        wcb = WeatherChartBuilder()
+        wcb.set_data_weather(wdc.data_weather)
+        await wcb.build()
+
+        email_builder = (EmailBuilder()
+                         .subject(f"Night Report - {night}")
+                         .night(night)
+                         .telescope_data(telescope_data)
+                         .wind_chart(wcb.get_image_wind_byte())
+                         .temperature_chart(wcb.get_image_temperature_byte())
+                         .humidity_hart(wcb.get__image_humidity_byte())
+                         .pressure_hart(wcb.get_image_pressure_byte()))
+
+        email_message = await email_builder.build()
+
         for email in email_recipients:
-            email_builder = (EmailBuilder()
-                             .subject(f"Night Report - {night}")
-                             .night(night)
-                             .telescope_data(telescope_data))
-
-            email_message = await email_builder.build()
-
             email_sender = EmailSender(email)
             result = await email_sender.send(email_message)
             if result:
