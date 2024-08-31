@@ -33,8 +33,8 @@ class WeatherDataCollector:
 
     async def _read_data_from_measurements_stream(self):
         stream = self._measurements_stream
-        yesterday_midday = DateUtils.yesterday_midday()
-        today_midday = DateUtils.today_midday()
+        yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
+        today_midday = DateUtils.today_local_midday_in_utc()
         reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
         try:
             await reader.open()

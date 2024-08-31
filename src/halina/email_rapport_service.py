@@ -38,8 +38,8 @@ class EmailRapportService(Service):
 
     @staticmethod
     def _format_night() -> str:
-        yesterday_midday = DateUtils.yesterday_midday()
-        today_midday = DateUtils.today_midday()
+        yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
+        today_midday = DateUtils.today_local_midday_in_utc()
 
         if yesterday_midday.month == today_midday.month:
             return f"{yesterday_midday.day}-{today_midday.day} {yesterday_midday.strftime('%b %Y')}"

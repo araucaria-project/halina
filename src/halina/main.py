@@ -39,7 +39,7 @@ def read_configuration(**kwargs):
     set_single_setting(GlobalConfig.SMTP_PASSWORD, kwargs)
     set_single_setting(GlobalConfig.FROM_NAME, kwargs)
     set_single_setting(GlobalConfig.TELESCOPES, kwargs, False)
-    set_single_setting(GlobalConfig.TIMEZONE, kwargs, False)
+    set_single_setting(GlobalConfig.OBSERVATORY_TIMEZONE, kwargs, False)
     set_single_setting(GlobalConfig.FROM_EMAIL, kwargs)
     set_single_setting(GlobalConfig.EMAILS_TO, kwargs, False)
     set_single_setting(GlobalConfig.SEND_AT, kwargs, False)
