@@ -68,8 +68,8 @@ class TelescopeDtaCollector:
             self.malformed_zdf_count += 1
 
     async def _read_data_from_stream(self, stream: str, main_key: str):
-        yesterday_midday = DateUtils.yesterday_midday()
-        today_midday = DateUtils.today_midday()
+        yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
+        today_midday = DateUtils.today_local_midday_in_utc()
         reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
         try:
             await reader.open()
@@ -214,7 +214,7 @@ class TelescopeDtaCollector:
             # ----- Process image type -----
             typ_name = TelescopeDtaCollector._map_img_typ_to_typ_name(img_typ=img_typ)
             if typ_name == 'flat':
-                if date < datetime_to_julian(DateUtils.yesterday_midnight()):
+                if date < datetime_to_julian(DateUtils.yesterday_local_midnight_in_utc()):
                     typ_name = 'evening-flat'
                 else:
                     typ_name = 'morning-flat'

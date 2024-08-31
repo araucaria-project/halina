@@ -25,7 +25,9 @@ class EmailSender:
         logger.info(f"Email name: {user_name}")
 
         # Set the "From" header with the display name and email address
+        del message["From"]
         message["From"] = formataddr((from_name, from_email))
+        del message["To"]
         message["To"] = self.to_email
 
         smtp: SMTP = SMTP(hostname=GlobalConfig.get(GlobalConfig.SMTP_HOST),

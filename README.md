@@ -63,6 +63,8 @@ The following variables can be used to configure the simulator and email report 
 - `FROM_EMAIL`: Sent emails FROM field email address, e.g. `noreplay.example.com` 
 - `FROM_NAME`: Sent emails FROM field display name, e.g. `HALina`
 - `SEND_AT`: UTC time at which the data collection process will be started. It is integer number representing hour.
+- `OBSERVATORY_TIMEZONE`: Observatory local timezone as int number, e.g. `-4` . It is important. 
+This will be gotten to count range of night from 12am to 12am next day
 
 Example `settings.toml` file:
 
@@ -78,6 +80,7 @@ EMAILS_TO=['mail1@example.com','mail1@example.com']
 FROM_EMAIL='noreplay@example.com'
 FROM_NAME='Halina'
 SEND_AT=14
+OBSERVATORY_TIMEZONE = -4
 ```
 Command arguments
 All parameters given as command arguments are read as a string and then parsed into JSON format. It is 

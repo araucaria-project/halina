@@ -39,7 +39,7 @@ class GlobalConfig:
     SMTP_USERNAME = "SMTP_USERNAME"
     TELESCOPES = "TELESCOPES"
     EMAILS_TO = "EMAILS_TO"
-    TIMEZONE = "TIMEZONE"
+    OBSERVATORY_TIMEZONE = "OBSERVATORY_TIMEZONE"
     FROM_EMAIL = "FROM_EMAIL"
     FROM_NAME = "FROM_NAME"
     SMTP_PASSWORD = "SMTP_PASSWORD"
@@ -54,7 +54,7 @@ class GlobalConfig:
         SMTP_USERNAME: __ConfigVal(str),
         TELESCOPES: __ConfigVal(list),
         EMAILS_TO: __ConfigVal(list),
-        TIMEZONE: __ConfigVal(int),
+        OBSERVATORY_TIMEZONE: __ConfigVal(int),
         SMTP_HOST: __ConfigVal(str),
         SMTP_PORT: __ConfigVal(int),
         FROM_EMAIL: __ConfigVal(str),
@@ -62,8 +62,8 @@ class GlobalConfig:
         SMTP_PASSWORD: __ConfigVal(str),
         SEND_AT: __ConfigVal(int),  # at witch hour will be sent email
     }
-    # __setters = [NATS_HOST, NATS_PORT, SMTP_USERNAME, TELESCOPES, EMAILS_TO, TIMEZONE, SMTP_HOST, SMTP_PORT,
-    #              FROM_EMAIL, FROM_NAME, SMTP_PASSWORD, SEND_AT]
+    # __setters = [NATS_HOST, NATS_PORT, SMTP_USERNAME, TELESCOPES, EMAILS_TO, OBSERVATORY_TIMEZONE, SMTP_HOST,
+    # SMTP_PORT, FROM_EMAIL, FROM_NAME, SMTP_PASSWORD, SEND_AT]
 
     @classmethod
     def get(cls, name, default=None):

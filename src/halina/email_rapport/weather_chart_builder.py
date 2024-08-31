@@ -21,6 +21,7 @@ class WeatherChartBuilder:
         self._image_temperature_byte = None
         self._image_humidity_byte = None
         self._image_pressure_byte = None
+        self._timezone_axes = 0
 
     def get_image_wind_byte(self):
         return self._image_wind_byte
@@ -42,6 +43,7 @@ class WeatherChartBuilder:
         return self
 
     async def build(self):
+        tim_ax = self._timezone_axes
         if not self._data_weather:
             return None
         # TODO if creating plot will take to much time, should think about run it in multiprocessing
@@ -69,7 +71,8 @@ class WeatherChartBuilder:
 
         # wind
         fig_wind = go.Figure(layout_yaxis_range=[0, max_wind + WeatherChartBuilder._SCALE_MARGIN])
-        fig_wind.update_layout(title_text='Wind [m/s]', title_x=0.5)
+        fig_wind.update_layout(title_text='<b>Wind [m/s]</b>', title_x=0.5,
+                               xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>")
         fig_wind.add_trace(go.Scatter(x=hours, y=winds))
         fig_wind.add_hrect(y0=WeatherChartBuilder._WIND_AREA1, y1=WeatherChartBuilder._WIND_AREA2,
                            line_width=0, fillcolor="yellow", opacity=0.2)
@@ -80,21 +83,24 @@ class WeatherChartBuilder:
 
         # temperature
         fig_temperature = go.Figure()
-        fig_temperature.update_layout(title_text='Temperature [C]', title_x=0.5)
+        fig_temperature.update_layout(title_text='<b>Temperature [C]</b>', title_x=0.5,
+                                      xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>")
         fig_temperature.add_trace(go.Scatter(x=hours, y=temperatures))
         self._image_temperature_byte = fig_temperature.to_image(format="png")
         await asyncio.sleep(0)
 
         # humidity
         fig_humidity = go.Figure()
-        fig_humidity.update_layout(title_text='Humidity [%]', title_x=0.5)
+        fig_humidity.update_layout(title_text='<b>Humidity [%]</b>', title_x=0.5,
+                                   xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>")
         fig_humidity.add_trace(go.Scatter(x=hours, y=humiditys))
         self._image_humidity_byte = fig_humidity.to_image(format="png")
         await asyncio.sleep(0)
 
         # pressure
         fig_pressure = go.Figure()
-        fig_pressure.update_layout(title_text='Pressure [hPa]', title_x=0.5)
+        fig_pressure.update_layout(title_text='<b>Pressure [hPa]</b>', title_x=0.5,
+                                   xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>")
         fig_pressure.add_trace(go.Scatter(x=hours, y=pressures))
         self._image_pressure_byte = fig_pressure.to_image(format="png")
 
