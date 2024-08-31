@@ -9,5 +9,5 @@ FROM_EMAIL = 'test@test.com'
 TELESCOPES = ['jk15','zb08']
 EMAILS_TO = ['test2@test.com']
 OBSERVATORY_TIMEZONE = 0
-SEND_AT = 14
+SEND_AT = 18
 SEND_AT_MIN = 0
