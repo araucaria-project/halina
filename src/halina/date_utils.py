@@ -10,7 +10,7 @@ class DateUtils:
 
     @staticmethod
     def today_midday_utc() -> datetime:
-        t = datetime.datetime.now(datetime.timezone.utc)
+        t = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
         t = t.replace(hour=12, minute=0, second=0, microsecond=0)  # set yesterday at middle of the day
         return t
 
