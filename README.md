@@ -64,6 +64,7 @@ The following variables can be used to configure the simulator and email report 
 - `FROM_NAME`: Sent emails FROM field display name, e.g. `HALina`
 - `SEND_AT`: UTC time at which the data collection process will be started. It is integer number representing hour. 
 This should take into account local timezone so if we want sent emails 2 hour after observation cycle (12am local time) but local time in observatory is utc-4, so we should type to send emails at 18 utc+0
+- `SEND_AT_MIN`: Number of minutes after hour from param `SEND_AT`. If `SEND_AT_MIN` will be set e.g. `25` them process collecting data will start 25 min after hour from `SEND_AT`
 - `OBSERVATORY_TIMEZONE`: Observatory local timezone as int number, e.g. `-4` . It is important. 
 This will be gotten to count range of night from 12am to 12am next day
 
@@ -80,7 +81,8 @@ SMTP_PASSWORD='abcdefg'
 EMAILS_TO=['mail1@example.com','mail1@example.com']
 FROM_EMAIL='noreplay@example.com'
 FROM_NAME='Halina'
-SEND_AT=18
+SEND_AT=16
+SEND_AT_MIN=0
 OBSERVATORY_TIMEZONE = -4
 ```
 Command arguments
