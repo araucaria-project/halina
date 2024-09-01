@@ -68,7 +68,10 @@ class WeatherChartBuilder:
         stop = datetime.datetime.now(datetime.timezone.utc)
         logger.info(f"preparing data for plots completed. Proces takes: {(stop - start).total_seconds()}")
         start = datetime.datetime.now(datetime.timezone.utc)
-
+        if max_wind > WeatherChartBuilder._WIND_AREA2:
+            wind_red_area_top = max_wind + WeatherChartBuilder._SCALE_MARGIN
+        else:
+            wind_red_area_top = WeatherChartBuilder._WIND_AREA2 + WeatherChartBuilder._SCALE_MARGIN
         # wind
         fig_wind = go.Figure(layout_yaxis_range=[0, max_wind + WeatherChartBuilder._SCALE_MARGIN])
         fig_wind.update_layout(title_text='<b>Wind [m/s]</b>', title_x=0.5,
@@ -76,7 +79,7 @@ class WeatherChartBuilder:
         fig_wind.add_trace(go.Scatter(x=hours, y=winds))
         fig_wind.add_hrect(y0=WeatherChartBuilder._WIND_AREA1, y1=WeatherChartBuilder._WIND_AREA2,
                            line_width=0, fillcolor="yellow", opacity=0.2)
-        fig_wind.add_hrect(y0=WeatherChartBuilder._WIND_AREA2, y1=max_wind + WeatherChartBuilder._SCALE_MARGIN,
+        fig_wind.add_hrect(y0=WeatherChartBuilder._WIND_AREA2, y1=wind_red_area_top,
                            line_width=0, fillcolor="red", opacity=0.2)
         self._image_wind_byte = fig_wind.to_image(format="png")
         await asyncio.sleep(0)
