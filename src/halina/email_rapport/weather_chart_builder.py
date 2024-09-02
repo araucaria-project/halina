@@ -73,7 +73,7 @@ class WeatherChartBuilder:
         else:
             wind_red_area_top = WeatherChartBuilder._WIND_AREA2 + WeatherChartBuilder._SCALE_MARGIN
         # wind
-        fig_wind = go.Figure(layout_yaxis_range=[0, max_wind + WeatherChartBuilder._SCALE_MARGIN])
+        fig_wind = go.Figure(layout_yaxis_range=[0, wind_red_area_top])
         fig_wind.update_layout(title_text='<b>Wind [m/s]</b>', title_x=0.5,
                                xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>")
         fig_wind.add_trace(go.Scatter(x=hours, y=winds))
