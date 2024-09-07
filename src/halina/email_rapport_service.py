@@ -135,7 +135,9 @@ class EmailRapportService(Service):
         logger.info(f"Scanning stream for fits completed.")
         for name, i in telescopes.items():
             logger.info(f"Find fits for {name}: {i.count_fits}")
-
+        lon = None
+        lat = None
+        elev = None
         # Prepare data for email
         telescope_data: List[Dict[str, int]] = []
         for tel in self._telescopes:
@@ -150,6 +152,9 @@ class EmailRapportService(Service):
                 'fits_group_type': telescopes[tel].fits_group_type
             }
             telescope_data.append(telescope_info)
+            lon = telescopes[tel].tel_lon
+            lat = telescopes[tel].tel_lat
+            elev = telescopes[tel].tel_elev
 
         # Build and send email
         night = self._format_night()
@@ -159,8 +164,11 @@ class EmailRapportService(Service):
             logger.info(f"No recipient specified.")
 
         # build charts
-        wcb = WeatherChartBuilder()
-        wcb.set_data_weather(wdc.data_weather)
+        wcb = (WeatherChartBuilder()
+               .data_weather(wdc.data_weather)
+               .tel_lon(lon)
+               .tel_lat(lat)
+               .tel_elev(elev))
         await wcb.build()
 
         email_builder = (EmailBuilder()

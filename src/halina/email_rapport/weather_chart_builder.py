@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import logging
-from typing import List
+from typing import List, Optional
 import plotly.graph_objects as go
 
 from halina.email_rapport.data_collector_classes.weather_point import WeatherPoint
@@ -22,6 +22,9 @@ class WeatherChartBuilder:
         self._image_humidity_byte = None
         self._image_pressure_byte = None
         self._timezone_axes = 0
+        self._tel_lat: Optional[float] = None
+        self._tel_lon: Optional[float] = None
+        self._tel_elev: Optional[float] = None
 
     def get_image_wind_byte(self):
         return self._image_wind_byte
@@ -40,6 +43,27 @@ class WeatherChartBuilder:
 
     def data_weather(self, data_weather: List[WeatherPoint]):
         self.set_data_weather(data_weather=data_weather)
+        return self
+
+    def set_tel_lat(self, lat: Optional[float]):
+        self._tel_lat = lat
+
+    def tel_lat(self, lat: float):
+        self.set_tel_lat(lat=lat)
+        return self
+
+    def set_tel_lon(self, lon: Optional[float]):
+        self._tel_lon = lon
+
+    def tel_lon(self, lon: Optional[float]):
+        self.set_tel_lon(lon=lon)
+        return self
+
+    def set_tel_elev(self, elev: Optional[float]):
+        self._tel_elev = elev
+
+    def tel_elev(self, elev: Optional[float]):
+        self.set_tel_elev(elev=elev)
         return self
 
     async def build(self):

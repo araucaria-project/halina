@@ -36,6 +36,9 @@ class TelescopeDtaCollector:
 
         # collected data
         self.color: str = ''
+        self.tel_lat: Optional[float] = None
+        self.tel_lon: Optional[float] = None
+        self.tel_elev: Optional[float] = None
         self.objects: Dict[str, DataObject] = {}  # used dict instead list is faster
         self.fits_group_type: Dict[str, DataTypeFits] = {}
         self.count_fits: int = 0
@@ -146,6 +149,12 @@ class TelescopeDtaCollector:
             color = (record.get('config', {}).get('telescopes', {}).get(self._telescope_name, {}).get('observatory', {})
                      .get('style', {}).get('color', ''))
             self.color = color
+            self.tel_lat = (record.get('config', {}).get('telescopes', {}).get(self._telescope_name, {})
+                            .get('observatory', {}).get('lat', None))
+            self.tel_lon = (record.get('config', {}).get('telescopes', {}).get(self._telescope_name, {})
+                            .get('observatory', {}).get('lon', None))
+            self.tel_elev = (record.get('config', {}).get('telescopes', {}).get(self._telescope_name, {})
+                             .get('observatory', {}).get('elev', None))
         except (MessengerReaderStopped, asyncio.TimeoutError, AttributeError):
             logger.warning(f"Can't load telescope settings from stream {self._telescope_settings_stream}")
 
