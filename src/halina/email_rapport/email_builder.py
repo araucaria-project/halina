@@ -148,6 +148,7 @@ class EmailBuilder:
     async def _add_chart_to_message(message: MIMEMultipart, chart: bytes, chart_name: str):
         if chart is None:
             logger.warning(f"Weather chart is None. Char name: {chart_name}")
+            return
         try:
             chart_image = MIMEImage(chart)
         except Exception as e:

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__.rsplit('.')[-1])
 class WeatherChartBuilder:
     _SCALE_MARGIN = 0.5
     _WIND_AREA2 = 14  # wind speed red area
-    _WIND_AREA1 = 12  # wind speed yellow area
+    _WIND_AREA1 = 11  # wind speed yellow area
 
     def __init__(self):
         self._title: str = "Weather"

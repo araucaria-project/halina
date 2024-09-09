@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "halina"
-version = "0.1.15"
+version = "0.1.16"
 description = "Heuristic Algorithmic Library..."
 authors = []
 readme = "README.md"
