@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 from collections import defaultdict
 
 from serverish.messenger import Messenger
@@ -13,6 +13,7 @@ from halina.email_rapport.email_sender import EmailSender
 from halina.email_rapport.telescope_data_collector import TelescopeDtaCollector
 from halina.email_rapport.weather_chart_builder import WeatherChartBuilder
 from halina.email_rapport.weather_data_collector import WeatherDataCollector
+from halina.file_raport.file_rapport_creator import FileRapportCreator
 from halina.nats_connection_service import NatsConnectionService
 from halina.service import Service
 from halina.email_rapport.data_collector_classes.data_object import DataObject
@@ -35,6 +36,7 @@ class EmailRapportService(Service):
         self._telescopes: List[str] = GlobalConfig.get(GlobalConfig.TELESCOPES)
         self._send_at_time = datetime.time(GlobalConfig.get(GlobalConfig.SEND_AT),
                                            GlobalConfig.get(GlobalConfig.SEND_AT_MIN))
+        self._save_file_task: Optional[asyncio.Task] = None
 
     @staticmethod
     def _format_night() -> str:
@@ -91,7 +93,8 @@ class EmailRapportService(Service):
         pass
 
     async def _on_stop(self) -> None:
-        pass
+        if self._save_file_task and not self._save_file_task.done():
+            self._save_file_task.cancel()
 
     async def _wait_to_open_nats(self, deadline: datetime.datetime) -> bool:
         if self._nats_messenger.is_open:
@@ -151,6 +154,9 @@ class EmailRapportService(Service):
             }
             telescope_data.append(telescope_info)
 
+        # save read fits filenames to json file
+        self._save_file_task = asyncio.create_task(self._save_found_fits_to_file(telescopes=telescopes))
+
         # Build and send email
         night = self._format_night()
         email_recipients: List[str] = GlobalConfig.get(GlobalConfig.EMAILS_TO)
@@ -181,6 +187,29 @@ class EmailRapportService(Service):
                 logger.info(f"Mail sent successfully to {email}!")
             else:
                 logger.error(f"Failed to send mail to {email}.")
+
+        # wait for save task
+        if self._save_file_task:
+            try:
+                await wait_for_psce(self._save_file_task, timeout=60)
+            except asyncio.TimeoutError:
+                logger.warning(f"Stop waiting for save fits to json file")
+
+    async def _save_found_fits_to_file(self, telescopes: Dict[str, TelescopeDtaCollector]):
+        to_save = []
+        for tel in self._telescopes:
+            fc = FileRapportCreator()
+            fc.set_data(telescopes[tel].fits_existing_files)
+            fc.set_subdir(tel)
+            # TODO ustawić nazwę pliku jako 4 cyfry symbolizujące noc obserwacyjna
+            fc.set_filename('night.json')
+            to_save.append(fc.save())
+        result = await asyncio.gather(*to_save, return_exceptions=True)
+        for i in result:
+            if i is True:
+                logger.debug(f'JSON file saved successfully')
+            else:
+                logger.warning(f'Can not save JSON file')
 
 
 class SendEmailException(Exception):

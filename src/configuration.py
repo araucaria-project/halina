@@ -45,6 +45,7 @@ class GlobalConfig:
     SMTP_PASSWORD = "SMTP_PASSWORD"
     SEND_AT = "SEND_AT"
     SEND_AT_MIN = "SEND_AT_MIN"
+    RAPPORT_FILE_TARGET_PATH = "RAPPORT_FILE_TARGET_PATH"
 
     # dict of empty values. If someone will be overridden by not None value, this value will be return instead
     # value from config
@@ -61,6 +62,7 @@ class GlobalConfig:
         FROM_NAME: __ConfigVal(str),
         SMTP_PASSWORD: __ConfigVal(str),
         SEND_AT: __ConfigVal(int),  # at witch hour will be sent email
+        RAPPORT_FILE_TARGET_PATH: __ConfigVal(str),  # at witch hour will be sent email
     }
     # __setters = [NATS_HOST, NATS_PORT, SMTP_USERNAME, TELESCOPES, EMAILS_TO, OBSERVATORY_TIMEZONE, SMTP_HOST,
     # SMTP_PORT, FROM_EMAIL, FROM_NAME, SMTP_PASSWORD, SEND_AT]

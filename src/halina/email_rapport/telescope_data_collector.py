@@ -38,6 +38,9 @@ class TelescopeDtaCollector:
 
         # collected data
         self.color: str = ''
+        self.tel_lat: Optional[float] = None
+        self.tel_lon: Optional[float] = None
+        self.tel_elev: Optional[float] = None
         self.objects: Dict[str, DataObject] = {}  # used dict instead list is faster
         self.fits_group_type: Dict[str, DataTypeFits] = {}
         self.downloaded_files: int = 0
@@ -46,6 +49,7 @@ class TelescopeDtaCollector:
         self.malformed_raw_count: int = 0
         self.malformed_zdf_count: int = 0
         self.malformed_download_count: int = 0
+        self.fits_existing_files: Dict[str, int] = {}  # dict witch data to parse to json
 
     @property
     def _fp_lock(self) -> asyncio.Lock:
@@ -137,6 +141,14 @@ class TelescopeDtaCollector:
         if not obs:
             logger.info(f"The read record from stream {stream} has no field:: date_obs")
             return False
+        filename = param.get('raw_file_name')
+        if not filename:
+            logger.info(f"The read record from stream {stream} has no field:: raw_file_name")
+            return False
+        image_type = param.get('image_type')
+        if not image_type:
+            logger.info(f"The read record from stream {stream} has no field:: image_type")
+            return False
         return True
 
     async def _read_data_from_stream(self, stream: str, main_key: str):
@@ -218,6 +230,12 @@ class TelescopeDtaCollector:
             color = (record.get('config', {}).get('telescopes', {}).get(self._telescope_name, {}).get('observatory', {})
                      .get('style', {}).get('color', ''))
             self.color = color
+            self.tel_lat = (record.get('config', {}).get('telescopes', {}).get(self._telescope_name, {})
+                            .get('observatory', {}).get('lat', None))
+            self.tel_lon = (record.get('config', {}).get('telescopes', {}).get(self._telescope_name, {})
+                            .get('observatory', {}).get('lon', None))
+            self.tel_elev = (record.get('config', {}).get('telescopes', {}).get(self._telescope_name, {})
+                             .get('observatory', {}).get('elev', None))
         except (MessengerReaderStopped, asyncio.TimeoutError, AttributeError):
             logger.warning(f"Can't load telescope settings from stream {self._telescope_settings_stream}")
 
@@ -267,6 +285,10 @@ class TelescopeDtaCollector:
             download = pair.get(TelescopeDtaCollector._STR_NAME_DOWNLOAD)
             if download is not None:
                 self.downloaded_files += 1
+                # 'error_key' is only just for case because stream is evaluate earlier
+                typ = self._map_img_typ_to_typ_name(download.get('param', {}).get('image_type', ''))
+                if typ != 'snap' and typ != 'focus':
+                    self.fits_existing_files[download.get('param', {}).get('raw_file_name', 'error_key')] = 1
 
             raw = pair.get(TelescopeDtaCollector._STR_NAME_RAW)
             if not raw:

@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from aiosmtplib import SMTP, SMTPException
 from email.mime.multipart import MIMEMultipart
