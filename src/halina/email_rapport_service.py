@@ -4,6 +4,7 @@ import logging
 from typing import Dict, List, Optional
 from collections import defaultdict
 
+from pyaraucaria.date import get_oca_jd, datetime_to_julian
 from serverish.messenger import Messenger
 
 from configuration import GlobalConfig
@@ -201,8 +202,8 @@ class EmailRapportService(Service):
             fc = FileRapportCreator()
             fc.set_data(telescopes[tel].fits_existing_files)
             fc.set_subdir(tel)
-            # TODO ustawić nazwę pliku jako 4 cyfry symbolizujące noc obserwacyjna
-            fc.set_filename('night.json')
+            jd = get_oca_jd(datetime_to_julian(DateUtils.yesterday_midnight_utc()))
+            fc.set_filename('{:04d}.json'.format(int(jd)))
             to_save.append(fc.save())
         result = await asyncio.gather(*to_save, return_exceptions=True)
         for i in result:
