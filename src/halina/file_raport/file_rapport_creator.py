@@ -26,7 +26,7 @@ class FileRapportCreator:
         self._subdir = subdir
 
     async def save(self) -> bool:
-        path_target = GlobalConfig.get(GlobalConfig.RAPPORT_FILE_TARGET_PATH)
+        path_target = GlobalConfig.get(GlobalConfig.RAPPORT_FILE_TARGET_PATH, '')
         if not path_target:
             return False
         dictionary = self._data
