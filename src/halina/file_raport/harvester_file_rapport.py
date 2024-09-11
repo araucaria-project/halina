@@ -25,7 +25,7 @@ class HarvesterFileRapport:
         # collected data
         self.downloaded_files: int = 0
         self.malformed_download_count: int = 0
-        self.fits_existing_files: Dict[str, int] = {}  # dict witch data to parse to json
+        self.fits_existing_files: dict = {"night_log": {"raw": {}}}  # dict witch data to parse to json
 
     def _get_download_stream(self) -> str:
         return self._download_stream
@@ -76,7 +76,7 @@ class HarvesterFileRapport:
                     typ = self._map_img_typ_to_typ_name(download.get('param', {}).get('image_type', ''))
                     if typ != 'snap' and typ != 'focus':
                         filename = download.get('param', {}).get('raw_file_name', 'error_key')
-                        self.fits_existing_files[filename] = 1
+                        self.fits_existing_files['night_log']['raw'][filename] = 1
                         logger.debug(f'Read downloaded fits file name; {filename}')
                 await asyncio.sleep(0)
         finally:
