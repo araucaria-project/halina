@@ -8,6 +8,7 @@ from typing import Optional
 
 from configuration import GlobalConfig
 from halina.email_rapport_service import EmailRapportService
+from halina.file_rapport_service import FileRapportService
 from halina.nats_connection_service import NatsConnectionService
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] [%(name)s] %(message)s',
@@ -49,9 +50,11 @@ async def main_coroutine():
     # Nats connection service
     nats_connection_handler_service = NatsConnectionService()
     email_rapport_service = EmailRapportService()
+    file_rapport_service = FileRapportService()
 
     services = [nats_connection_handler_service,
-                email_rapport_service]
+                email_rapport_service,
+                file_rapport_service]
     try:
         # start all services one by one
         for s in services:

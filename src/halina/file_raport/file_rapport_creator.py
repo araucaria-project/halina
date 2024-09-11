@@ -45,7 +45,6 @@ class FileRapportCreator:
             # Write to json
             async with aiofiles.open(os.path.join(path_target, self._subdir, self._filename), 'w') as file:
                 await file.write(json_object)
-                logger.info(f"ok {self._subdir}")
         except (asyncio.CancelledError, asyncio.TimeoutError):
             raise
         except Exception as e:
