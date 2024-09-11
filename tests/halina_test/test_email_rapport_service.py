@@ -21,15 +21,6 @@ class TestEmailRapportService(unittest.IsolatedAsyncioTestCase):
                 night = EmailRapportService._format_night()
                 self.assertEqual(night, "31 Jul - 1 Aug 2023")
 
-    def test_merge_data_objects(self):
-        objects = {
-            "obj1": DataObject(name="obj1", count=1, filters={"filter1"}),
-            "obj2": DataObject(name="obj1", count=2, filters={"filter2"}),
-        }
-        merged = self.service.merge_data_objects(objects)
-        self.assertEqual(merged["obj1"].count, 3)
-        self.assertEqual(merged["obj1"].filters, {"filter1", "filter2"})
-
     @patch('halina.email_rapport_service.Messenger')
     async def test__collect_data_and_send_no_nats_connection(self, mock_messenger):
         mock_messenger.is_open = False

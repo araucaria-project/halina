@@ -1,13 +1,11 @@
 import asyncio
 import datetime
 import logging
-from collections import defaultdict
 from typing import Dict, List
 from serverish.messenger import Messenger
 from configuration import GlobalConfig
 from halina.asyncio_util_functions import wait_for_psce
 from halina.date_utils import DateUtils
-from halina.email_rapport.data_collector_classes.data_object import DataObject
 from halina.email_rapport.email_builder import EmailBuilder
 from halina.email_rapport.email_sender import EmailSender
 from halina.email_rapport.telescope_data_collector import TelescopeDtaCollector
@@ -44,18 +42,6 @@ class EmailRapportService(Service):
         else:
             return (f"{yesterday_midday.day} {yesterday_midday.strftime('%b')} - {today_midday.day} "
                     f"{today_midday.strftime('%b %Y')}")
-
-    @staticmethod
-    def merge_data_objects(objects: Dict[str, DataObject]) -> Dict[str, DataObject]:
-        merged_objects: Dict[str, DataObject] = defaultdict(lambda: DataObject(name="", count=0, filters=set()))
-
-        for obj in objects.values():
-            if merged_objects[obj.name].name == "":
-                merged_objects[obj.name].name = obj.name
-            merged_objects[obj.name].count += obj.count
-            merged_objects[obj.name].filters.update(obj.filters)
-
-        return merged_objects
 
     async def _main(self) -> None:
         try:
