@@ -12,21 +12,20 @@ from halina.email_rapport.telescope_data_collector import TelescopeDtaCollector
 from halina.email_rapport.weather_chart_builder import WeatherChartBuilder
 from halina.email_rapport.weather_data_collector import WeatherDataCollector
 from halina.nats_connection_service import NatsConnectionService
-from halina.service import Service
+from halina.service_nats_dependent import ServiceNatsDependent
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
-class EmailRapportService(Service):
+class EmailRapportService(ServiceNatsDependent):
     _NAME = "EmailRapportService"
 
     # time to retry sending email on night. After this night will be skipped.
     # for now is only waiting to connection to NATS
     _SKIPPING_TIME = 1800  # 30 min
 
-    def __init__(self, utc_offset: int = 0):
-        super().__init__()
-        self._nats_messenger = Messenger()
+    def __init__(self, utc_offset: int = 0, **kwargs):
+        super().__init__(**kwargs)
         self._utc_offset: int = utc_offset
         self._telescopes: List[str] = GlobalConfig.get(GlobalConfig.TELESCOPES)
         self._send_at_time = datetime.time(GlobalConfig.get(GlobalConfig.SEND_AT),
@@ -76,23 +75,6 @@ class EmailRapportService(Service):
 
     async def _on_stop(self) -> None:
         pass
-
-    async def _wait_to_open_nats(self, deadline: datetime.datetime) -> bool:
-        if self._nats_messenger.is_open:
-            return True
-        if not self.shared_data.get_events().is_exist(
-                NatsConnectionService.EVENT_REFRESH_NATS_CONNECTION) or not self.shared_data.get_events().is_exist(
-                NatsConnectionService.EVENT_NATS_CONNECTION_OPENED):
-            return False
-        self.shared_data.get_events().notify(NatsConnectionService.EVENT_REFRESH_NATS_CONNECTION)
-        time = (deadline - datetime.datetime.now(datetime.timezone.utc)).total_seconds()
-        try:
-            await wait_for_psce(
-                self.shared_data.get_events().wait(NatsConnectionService.EVENT_NATS_CONNECTION_OPENED),
-                timeout=time)
-        except asyncio.TimeoutError:
-            pass
-        return self._nats_messenger.is_open
 
     async def _collect_data_and_send(self) -> None:
         # Can't waiting infinity to send email from one night because this block other nights

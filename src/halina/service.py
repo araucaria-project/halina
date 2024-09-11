@@ -15,7 +15,8 @@ class Service(ABC):
 
     _NAME = "Default"
 
-    def __init__(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.shared_data = ServiceSharedData()
         self._main_task: Optional[asyncio.Task] = None
 

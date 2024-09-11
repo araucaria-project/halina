@@ -12,20 +12,20 @@ from halina.date_utils import DateUtils
 from halina.file_raport.file_rapport_creator import FileRapportCreator
 from halina.file_raport.harvester_file_rapport import HarvesterFileRapport
 from halina.nats_connection_service import NatsConnectionService
-from halina.service import Service
+from halina.service_nats_dependent import ServiceNatsDependent
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
-class FileRapportService(Service):
+class FileRapportService(ServiceNatsDependent):
     _NAME = "FileRapportService"
 
     # time to retry sending email on night. After this night will be skipped.
     # for now is only waiting to connection to NATS
     _SKIPPING_TIME = 1800  # 30 min
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self._send_at_time = datetime.time(GlobalConfig.get(GlobalConfig.SEND_AT),
                                            GlobalConfig.get(GlobalConfig.SEND_AT_MIN))
         self._nats_messenger = Messenger()
@@ -65,23 +65,6 @@ class FileRapportService(Service):
 
     async def _on_stop(self):
         pass
-
-    async def _wait_to_open_nats(self, deadline: datetime.datetime) -> bool:
-        if self._nats_messenger.is_open:
-            return True
-        if not self.shared_data.get_events().is_exist(
-                NatsConnectionService.EVENT_REFRESH_NATS_CONNECTION) or not self.shared_data.get_events().is_exist(
-                NatsConnectionService.EVENT_NATS_CONNECTION_OPENED):
-            return False
-        self.shared_data.get_events().notify(NatsConnectionService.EVENT_REFRESH_NATS_CONNECTION)
-        time = (deadline - datetime.datetime.now(datetime.timezone.utc)).total_seconds()
-        try:
-            await wait_for_psce(
-                self.shared_data.get_events().wait(NatsConnectionService.EVENT_NATS_CONNECTION_OPENED),
-                timeout=time)
-        except asyncio.TimeoutError:
-            pass
-        return self._nats_messenger.is_open
 
     async def _collect_data_and_save(self):
         # Can't waiting infinity to send email from one night because this block other nights
