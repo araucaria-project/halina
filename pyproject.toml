@@ -19,6 +19,7 @@ aiofiles = "^24.1.0"
 dynaconf = "^3.2.6"
 plotly = "^5.24.0"
 kaleido = "0.2.1"  # library to convert ploply chart to static png is using by plotly library and never called in code !
+pandas = "^2.2.2"
 
 [build-system]
 requires = ["poetry-core"]

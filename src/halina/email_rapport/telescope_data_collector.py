@@ -1,8 +1,9 @@
 import asyncio
+import datetime
 import logging
 from typing import Dict, Optional
 
-from pyaraucaria.date import datetime_to_julian
+from pyaraucaria.date import datetime_to_julian, julian_to_tuple
 from serverish.base import MessengerReaderStopped
 from serverish.messenger import get_reader, single_read
 
@@ -10,6 +11,8 @@ from halina.asyncio_util_functions import wait_for_psce
 from halina.date_utils import DateUtils
 from halina.email_rapport.data_collector_classes.data_type_fits import DataTypeFits
 from halina.email_rapport.data_collector_classes.data_object import DataObject
+from halina.email_rapport.data_collector_classes.object_chart_point import ObjectChartPoint
+from halina.email_rapport.data_collector_classes.observation_chart_data import ObservationChartData
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
@@ -50,6 +53,7 @@ class TelescopeDtaCollector:
         self.malformed_zdf_count: int = 0
         self.malformed_download_count: int = 0
         self.fits_existing_files: Dict[str, int] = {}  # dict witch data to parse to json
+        self.observation_chart_data = ObservationChartData(tel_name=self._telescope_name)
 
     @property
     def _fp_lock(self) -> asyncio.Lock:
@@ -236,6 +240,26 @@ class TelescopeDtaCollector:
                             .get('observatory', {}).get('lon', None))
             self.tel_elev = (record.get('config', {}).get('telescopes', {}).get(self._telescope_name, {})
                              .get('observatory', {}).get('elev', None))
+
+            # filter/color map for chart
+            filters = (record.get('config', {}).get('telescopes', {}).get(self._telescope_name, {})
+                       .get('observatory', {}).get('components', {}).get('filterwheel', {}).get('filters', []))
+            self.observation_chart_data.filter_color_map = {}
+            for f in filters:
+                self.observation_chart_data.filter_color_map[f.get('name', 'default')] = (f.get('style', {}).
+                                                                                          get('color', '#000000'))
+            # min alt for chart
+            dome = (record.get('config', {}).get('telescopes', {}).get(self._telescope_name, {}).get('observatory', {})
+                    .get('components', {}).get('dome', {}))
+            self.observation_chart_data.alt_map['min_alt'] = dome.get('min_alt', None)
+            self.observation_chart_data.alt_map['max_alt'] = dome.get('max_alt', None)
+            self.observation_chart_data.alt_map['obs_min_alt'] = dome.get('obs_min_alt', None)
+
+            # telescope coordinates for chart
+            self.observation_chart_data.tel_lon = self.tel_lon
+            self.observation_chart_data.tel_lat = self.tel_lat
+            self.observation_chart_data.tel_elev = self.tel_elev
+
         except (MessengerReaderStopped, asyncio.TimeoutError, AttributeError):
             logger.warning(f"Can't load telescope settings from stream {self._telescope_settings_stream}")
 
@@ -304,6 +328,8 @@ class TelescopeDtaCollector:
                 self.malformed_raw_count += 1
                 return
             self.count_fits += 1
+            # ----- create data for chart -----
+            self._create_data_to_chart_point(raw=raw)
             # ----- Extract all important fields from RAW -----
             obj = raw.get("header", {}).get("OBJECT", None)
             filter_ = raw.get("header", {}).get("FILTER", None)
@@ -370,6 +396,18 @@ class TelescopeDtaCollector:
             return False
         if TelescopeDtaCollector._get_date_from_raw(raw.get("header", {})) is None:
             return False
+        filter_ = raw.get("header", {}).get("FILTER", None)
+        if not filter_:
+            logger.info(f"Find malformed fits witch no key: FILTER")
+            return False
+        exp = raw.get("header", {}).get("EXPTIME", None)
+        if exp is None:
+            logger.info(f"Find malformed fits witch no key: EXPTIME")
+            return False
+        alt = raw.get("header", {}).get("ALT_TEL", None)
+        if alt is None:
+            logger.info(f"Find malformed fits witch no key: ALT_TEL")
+            return False
         return True
 
     @staticmethod
@@ -378,3 +416,18 @@ class TelescopeDtaCollector:
         if out == "focusing":
             out = "focus"
         return out
+
+    def _create_data_to_chart_point(self, raw):
+        # ----- Extract all important fields from RAW -----
+        obj = raw.get("header", {}).get("OBJECT", None)
+        filter_ = raw.get("header", {}).get("FILTER", None)
+        img_typ = TelescopeDtaCollector._map_img_typ_to_typ_name(img_typ=raw.get("header", {}).get("IMAGETYP", None))
+        alt = raw.get("header", {}).get('ALT_TEL', None)
+
+        tup_date = julian_to_tuple(TelescopeDtaCollector._get_date_from_raw(raw.get("header", {})))
+        date = datetime.datetime(year=tup_date[0], month=tup_date[1], day=tup_date[2], hour=tup_date[3],
+                                 minute=tup_date[4], second=int(tup_date[5]),
+                                 microsecond=int((tup_date[5] % 1) * 1000000))
+        end_date = date + datetime.timedelta(seconds=raw.get("header", {}).get('EXPTIME', 0))
+        o = ObjectChartPoint(name=obj, filter=filter_, type=img_typ, alt=alt, start=date, end=end_date)
+        self.observation_chart_data.objects.append(o)

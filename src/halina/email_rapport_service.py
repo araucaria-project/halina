@@ -2,16 +2,14 @@ import asyncio
 import datetime
 import logging
 from typing import Dict, List
-from serverish.messenger import Messenger
 from configuration import GlobalConfig
-from halina.asyncio_util_functions import wait_for_psce
 from halina.date_utils import DateUtils
 from halina.email_rapport.email_builder import EmailBuilder
 from halina.email_rapport.email_sender import EmailSender
+from halina.email_rapport.obserwation_chart_builder import ObservationChartBuilder
 from halina.email_rapport.telescope_data_collector import TelescopeDtaCollector
 from halina.email_rapport.weather_chart_builder import WeatherChartBuilder
 from halina.email_rapport.weather_data_collector import WeatherDataCollector
-from halina.nats_connection_service import NatsConnectionService
 from halina.service_nats_dependent import ServiceNatsDependent
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
@@ -102,6 +100,9 @@ class EmailRapportService(ServiceNatsDependent):
         for name, i in telescopes.items():
             logger.info(f"Find fits for {name}: {i.count_fits}")
 
+        # data for compressed observation chart
+        observation_data_for_chart = []
+
         # Prepare data for email
         telescope_data: List[Dict[str, int]] = []
         for tel in self._telescopes:
@@ -117,6 +118,10 @@ class EmailRapportService(ServiceNatsDependent):
             }
             telescope_data.append(telescope_info)
 
+            # dataa compressed observation chart
+            observation_chart_data = telescopes[tel].observation_chart_data
+            observation_data_for_chart.append(observation_chart_data)
+
         # Build and send email
         night = self._format_night()
         email_recipients: List[str] = GlobalConfig.get(GlobalConfig.EMAILS_TO)
@@ -128,6 +133,12 @@ class EmailRapportService(ServiceNatsDependent):
         wcb = WeatherChartBuilder()
         wcb.set_data_weather(wdc.data_weather)
         await wcb.build()
+
+        # compressed observation chart
+        ocb = ObservationChartBuilder()
+        ocb.set_telescope_data(observation_data_for_chart)
+        ocb.set_data_weather(wdc.data_weather)
+        await ocb.build()
 
         email_builder = (EmailBuilder()
                          .subject(f"Night Report - {night}")
