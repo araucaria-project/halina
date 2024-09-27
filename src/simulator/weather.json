@@ -1,0 +1,15 @@
+{
+  "ts": [2024, 9, 26, 16, 48, 24, 491198],
+  "version": "1.0",
+  "measurements": {
+    "temperature_C": 17.5,
+    "humidity": 1, "wind_dir_deg": 3,
+    "wind_ms": 4.02336,
+    "wind_10min_ms": 10.12928,
+    "pressure_Pa": 728.2090188800072,
+    "bar_trend": 0,
+    "rain_mm": 0.0, "rain_day_mm": 0.0,
+    "indoor_temperature_C": 17.38888888888889,
+    "indoor_humidity": 3
+  }
+}

@@ -28,6 +28,7 @@ class EmailBuilder:
         self._temperature_chart = None
         self._pressure_hart = None
         self._humidity_hart = None
+        self._observation_chart = None
 
     def set_subject(self, subject: str) -> None:
         self._subject = subject
@@ -80,6 +81,13 @@ class EmailBuilder:
         self.set_humidity_hart(chart)
         return self
 
+    def set_observation_chart(self, chart: bytes):
+        self._observation_chart = chart
+
+    def observation_chart(self, chart: bytes):
+        self.set_observation_chart(chart)
+        return self
+
     async def build(self) -> MIMEMultipart:
         logger.info("Building the email.")
         env = Environment(loader=FileSystemLoader(RESOURCES_DIR))
@@ -114,6 +122,10 @@ class EmailBuilder:
         # Attach pressure chart
         await EmailBuilder._add_chart_to_message(message=message, chart=self._pressure_hart,
                                                  chart_name="pressure_chart")
+
+        # Attach observation chart
+        await EmailBuilder._add_chart_to_message(message=message, chart=self._observation_chart,
+                                                 chart_name="observation_chart")
 
         logger.info("Logos charts attached to email.")
         # Attach logo araucaria

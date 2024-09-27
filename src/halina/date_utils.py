@@ -1,6 +1,9 @@
 import datetime
 import logging
 import warnings
+from astropy import units as u
+from astropy.time import Time
+from astroplan import Observer
 from astropy.utils import iers
 from astropy.utils.exceptions import AstropyWarning
 from pyaraucaria.ephemeris import calculate_sun_rise_set
@@ -89,3 +92,23 @@ class DateUtils:
                                          elevation=elev
                                          )
         return sunrise
+
+    @staticmethod
+    def yesterday_moonrise_in_utc(lat, lon, elev) -> datetime.datetime:
+        """Method calculate and return last night moonrise"""
+        date = Time(val=DateUtils.yesterday_midday_utc())
+        obs = Observer(latitude=lat,
+                       longitude=lon,
+                       elevation=elev * u.m)
+        moonrise = obs.moon_rise_time(date, which='next', horizon=0.0 * u.deg).to_datetime()
+        return moonrise
+
+    @staticmethod
+    def yesterday_moonset_in_utc(lat, lon, elev) -> datetime.datetime:
+        """Method calculate and return last night moonset"""
+        date = Time(val=DateUtils.yesterday_midday_utc())
+        obs = Observer(latitude=lat,
+                       longitude=lon,
+                       elevation=elev * u.m)
+        moonset = obs.moon_set_time(date, which='next', horizon=0.0 * u.deg).to_datetime()
+        return moonset

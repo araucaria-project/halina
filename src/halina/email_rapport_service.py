@@ -147,7 +147,8 @@ class EmailRapportService(ServiceNatsDependent):
                          .wind_chart(wcb.get_image_wind_byte())
                          .temperature_chart(wcb.get_image_temperature_byte())
                          .humidity_hart(wcb.get__image_humidity_byte())
-                         .pressure_hart(wcb.get_image_pressure_byte()))
+                         .pressure_hart(wcb.get_image_pressure_byte())
+                         .observation_chart(ocb.get_observation_chart()))
 
         email_message = await email_builder.build()
 

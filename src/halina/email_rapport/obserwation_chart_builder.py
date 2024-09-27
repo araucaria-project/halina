@@ -4,6 +4,7 @@ import logging
 import pandas as pd
 import plotly.express as px
 from typing import List
+from pyaraucaria.ephemeris import moon_phase
 from halina.date_utils import DateUtils
 from halina.email_rapport.data_collector_classes.weather_point import WeatherPoint
 from halina.email_rapport.data_collector_classes.observation_chart_data import ObservationChartData
@@ -33,6 +34,23 @@ class ObservationChartBuilder:
         _WIND_AREA1: '#f6ce46',  # yellow
         _WIND_AREA2: '#ea4d3d',  # red
     }
+    _RAISE_MOON_SYMBOL = '↗'
+    _SET_MOON_SYMBOL = '↘'
+
+    @staticmethod
+    def _GET_MOON_PHASE_SYMBOL(phase: float):
+        symbol = ''
+        if 0 >= phase <= 10:
+            symbol = '🌑'
+        elif 10 > phase <= 40:
+            symbol = '🌘'
+        elif 40 > phase <= 60:
+            symbol = '🌗'
+        elif 60 > phase <= 90:
+            symbol = '🌖'
+        elif 90 > phase <= 100:
+            symbol = '🌕'
+        return symbol
 
     def __init__(self):
         self._timezone_axes = 0
@@ -55,10 +73,19 @@ class ObservationChartBuilder:
         if not self._tel_data:
             return None
 
-        # calculate sunset and sunrise - if can not calculate sunrise and sunset stop generate chart
+        # calculate moonset and moonrise - if can not calculate moonrise and moonset stop generate chart
         sunset, sunrise = self._get_sunrise_and_sunset()
         if sunrise is None or sunset is None:
             return None
+        # calculate sunset and sunrise - if can not calculate sunrise and sunset stop generate chart
+        moonrise, moonset = self._get_moonrise_moonset()
+        if moonrise is None or moonset is None:
+            return None
+        moon_ph = self._get_moon_phase()
+        if moon_ph is None:
+            return None
+        sun_chart_title = 'Sun' if not moon_ph else f'Sun/{ObservationChartBuilder._GET_MOON_PHASE_SYMBOL(moon_ph)}'
+
         # calculate chart range x axe
         chart_start_time = sunset - datetime.timedelta(minutes=ObservationChartBuilder._SUNSET_SUNRISE_MARGIN)
         chart_end_time = sunrise + datetime.timedelta(minutes=ObservationChartBuilder._SUNSET_SUNRISE_MARGIN)
@@ -72,16 +99,15 @@ class ObservationChartBuilder:
                           pattern_shape='Type', height=350, range_x=[chart_start_time, chart_end_time])
         # bargap = gap between vertical charts
         # template = none - change background color to white and line style also !! GOOD
-        fig.update_layout(bargap=0.05, yaxis_title=None, template="none")
+        fig.update_layout(bargap=0.05, yaxis_title=None, template="none", yaxis_tickfont_size=26)
         fig.update(layout_showlegend=False)
-        fig.update_xaxes(tickformat="%H:%M")
-
+        fig.update_xaxes(tickformat="%H:%M", tickfont_size=26)
         await asyncio.sleep(0)
         # ----------- sunrise / sunset part ---------
         sun_chart_points = [
-            dict(Day='Day', Start=chart_start_time, Finish=sunset, Resource='Sun'),
-            dict(Day='Night', Start=sunset, Finish=sunrise, Resource='Sun'),
-            dict(Day='Day', Start=sunrise, Finish=chart_end_time, Resource='Sun')
+            dict(Day='Day', Start=chart_start_time, Finish=sunset, Resource=sun_chart_title),
+            dict(Day='Night', Start=sunset, Finish=sunrise, Resource=sun_chart_title),
+            dict(Day='Day', Start=sunrise, Finish=chart_end_time, Resource=sun_chart_title),
         ]
         sun_data = pd.DataFrame(sun_chart_points)
         sun_part = px.timeline(
@@ -90,6 +116,20 @@ class ObservationChartBuilder:
             color_discrete_map=ObservationChartBuilder._COLOR_MAP_SUN, range_x=[chart_start_time, chart_end_time])
         fig = fig.add_traces(
             [*sun_part.data]
+        )
+
+        await asyncio.sleep(0)
+        # ----------- moonrise / moonset part ---------
+        moon_chart_points = [
+            dict(Day='MoonRise', Start=moonrise, Resource=sun_chart_title,
+                 Text=ObservationChartBuilder._RAISE_MOON_SYMBOL),
+            dict(Day='MoonSet', Start=moonset, Resource=sun_chart_title, Text=ObservationChartBuilder._SET_MOON_SYMBOL)
+        ]
+        moon_data = pd.DataFrame(moon_chart_points)
+        moon_part = px.scatter(moon_data, x='Start', y='Resource', text='Text', log_x=True)
+        moon_part.update_traces(textfont_size=23, textfont_color="#f7f7f7")
+        fig = fig.add_traces(
+            [*moon_part.data]
         )
 
         await asyncio.sleep(0)
@@ -103,7 +143,7 @@ class ObservationChartBuilder:
         fig = fig.add_traces(
             [*wind_part.data]
         )
-        self._observation_chart = fig.to_image(format="png")
+        self._observation_chart = fig.to_image(format="png", width=1920, height=350)
 
     def _get_sunrise_and_sunset(self):
         sunset = None
@@ -159,3 +199,29 @@ class ObservationChartBuilder:
         else:
             area = ObservationChartBuilder._WIND_AREA2
         return area
+
+    def _get_moonrise_moonset(self):
+        moonset = None
+        moonrise = None
+        if len(self._tel_data) > 0:
+            lat = self._tel_data[0].tel_lat
+            lon = self._tel_data[0].tel_lon
+            elev = self._tel_data[0].tel_elev
+            if lat is not None and lon is not None and elev is not None:
+                moonset = DateUtils.yesterday_moonset_in_utc(lat=lat, lon=lon, elev=elev)
+                moonrise = DateUtils.yesterday_moonrise_in_utc(lat=lat, lon=lon, elev=elev)
+        return moonrise, moonset
+
+    def _get_moon_phase(self):
+        phase = None
+        if len(self._tel_data) > 0:
+            lat = self._tel_data[0].tel_lat
+            lon = self._tel_data[0].tel_lon
+            elev = self._tel_data[0].tel_elev
+            if lat is not None and lon is not None and elev is not None:
+                phase = moon_phase(date_utc=DateUtils.yesterday_midday_utc(),
+                                   latitude=lat,
+                                   longitude=lon,
+                                   elevation=elev
+                                   )
+        return phase
