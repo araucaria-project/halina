@@ -168,6 +168,7 @@
                                                 <th>
                                                     <h4 class="text-center">Night Report</h4>
                                                     <p class="text-center">{{ night }}</p>
+                                                    <p class="text-center">{{ moon_phase }}{{ oca_jd }}</p>
                                                 </th>
                                             </tr>
                                           </tbody>
@@ -257,7 +258,7 @@
                                             <tbody>
                                             <tr>
                                                 <th>
-                                                    <h6 class="text-center">Weather Conditions</h6>
+                                                    <h6 class="text-center">Charts (UTC)</h6>
                                                 </th>
                                             </tr>
                                                 <tr>
@@ -271,18 +272,27 @@
                                                                         <tbody>
                                                                             <tr>
                                                                                 <th class="menu-item float-center">
-                                                                                    <a href=""><img src="cid:wind_chart" width="400" height="400" style="object-fit: cover; height: auto; max-width: 100%;" alt="Wind Chart"></a>
-                                                                                </th>
-                                                                                <th class="menu-item float-center">
-                                                                                    <a href=""><img src="cid:temperature_chart" width="400" height="400" style="object-fit: cover; height: auto; max-width: 100%;" alt="Temperature Chart"></a>
+                                                                                    <a href=""><img src="cid:wind_chart" width="800" height="200" style="object-fit: cover; height: 100%; max-width: 100%;" alt="Wind Chart"></a>
                                                                                 </th>
                                                                             </tr>
                                                                             <tr>
                                                                                 <th class="menu-item float-center">
-                                                                                    <a href=""><img src="cid:humidity_chart" width="400" height="400" style="object-fit: cover; height: auto; max-width: 100%;" alt="Humidity hart"></a>
+                                                                                    <a href=""><img src="cid:temperature_chart" width="800" height="200" style="object-fit: cover; height: 100%; max-width: 100%;" alt="Temperature Chart"></a>
                                                                                 </th>
+                                                                            </tr>
+                                                                            <tr>
                                                                                 <th class="menu-item float-center">
-                                                                                    <a href=""><img src="cid:pressure_chart" width="400" height="400" style="object-fit: cover; height: auto; max-width: 100%;" alt="Pressure Chart"></a>
+                                                                                    <a href=""><img src="cid:humidity_chart" width="800" height="200" style="object-fit: cover; height: 100%; max-width: 100%;" alt="Humidity hart"></a>
+                                                                                </th>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <th class="menu-item float-center">
+                                                                                    <a href=""><img src="cid:pressure_chart" width="800" height="200" style="object-fit: cover; height: 100%; max-width: 100%;" alt="Pressure Chart"></a>
+                                                                                </th>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <th class="menu-item float-center">
+                                                                                    <a href=""><img src="cid:fwhm_chart" width="800" height="200" style="object-fit: cover; height: 100%; max-width: 100%;" alt="FWHM Chart"></a>
                                                                                 </th>
                                                                             </tr>
                                                                         </tbody>

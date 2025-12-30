@@ -50,7 +50,7 @@ class FileRapportService(ServiceNatsDependent):
                     logger.debug(f"Finish creating file rapport today: {now.date()}")
                     working_time_minutes = (stop - start).total_seconds() / 60
                     logger.info(f"File rapport created today: {now.date()} . "
-                                f"Proses takes {working_time_minutes}")
+                                f"Proces takes {working_time_minutes}")
                 except SaveFileException as e:
                     logger.error(f"Email sender service cath error: {e}")
 

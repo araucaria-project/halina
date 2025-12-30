@@ -1,6 +1,7 @@
 import asyncio
+import datetime
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from pyaraucaria.date import datetime_to_julian
 from serverish.base import MessengerReaderStopped
@@ -10,6 +11,7 @@ from halina.asyncio_util_functions import wait_for_psce
 from halina.date_utils import DateUtils
 from halina.email_rapport.data_collector_classes.data_type_fits import DataTypeFits
 from halina.email_rapport.data_collector_classes.data_object import DataObject
+from halina.email_rapport.data_collector_classes.fwhm_point import FwhmPoint
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
@@ -27,6 +29,7 @@ class TelescopeDtaCollector:
         self._raw_stream: str = f"tic.status.{self._telescope_name}.fits.pipeline.raw"
         self._zdf_stream: str = f"tic.status.{self._telescope_name}.fits.pipeline.zdf"
         self._download_stream: str = f"tic.status.{self._telescope_name}.download"
+        self._faststat_stream: str = f"tic.status.{self._telescope_name}.fits.pipeline.faststat"
         self._telescope_settings_stream: str = f"tic.config.observatory"
 
         # {fits_id: dict(raw: raw_fits, zdf: zdf_fits)}
@@ -50,6 +53,7 @@ class TelescopeDtaCollector:
         self.malformed_zdf_count: int = 0
         self.malformed_download_count: int = 0
         self.fits_existing_files: Dict[str, int] = {}  # dict witch data to parse to json
+        self.fwhm_data: List[FwhmPoint] = []
 
     @property
     def _fp_lock(self) -> asyncio.Lock:
@@ -71,6 +75,9 @@ class TelescopeDtaCollector:
 
     def _get_download_stream(self) -> str:
         return self._download_stream
+
+    def _get_faststat_stream(self) -> str:
+        return self._faststat_stream
 
     def _count_malformed_fits(self, main_key: str):
         if main_key == TelescopeDtaCollector._STR_NAME_RAW:
@@ -150,6 +157,47 @@ class TelescopeDtaCollector:
             logger.info(f"The read record from stream {stream} has no field:: image_type")
             return False
         return True
+
+    async def _read_data_from_faststat(self):
+        stream = self._get_faststat_stream()
+        yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
+        today_midday = DateUtils.today_local_midday_in_utc()
+        reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
+        try:
+            await reader.open()
+            while True:
+                try:
+                    data, meta = await wait_for_psce(reader.read_next(), 2)
+                except asyncio.TimeoutError:
+                    logger.info(f"Stop waiting for new date in stream - stream is empty. {stream}")
+                    break
+
+                try:
+                    fwhm: float = (data['raw']['fwhm']['fwhm_x'] + data['raw']['fwhm']['fwhm_y']) / 2
+                    date_obs: str = data['raw']['header']['DATE-OBS']
+                    jd: float = data['raw']['header']['JD']
+                    scale: float = data['raw']['header']['SCALE']
+                    image_typ: str = data['raw']['header']['IMAGETYP']
+                except (ValueError, TypeError, LookupError):
+                    continue
+                if not image_typ == 'science':
+                    continue
+                jd_today_midday = datetime_to_julian(today_midday)
+                # if the difference between the beginning of the observation and the date of observation is greater
+                # than 1, it means that the day has passed and there is another night
+                if (jd_today_midday - jd) >= 1:
+                    break
+                try:
+                    self.fwhm_data.append(FwhmPoint(
+                        date=datetime.datetime.fromisoformat(date_obs), fwhm=fwhm, scale=scale
+                    ))
+                except (ValueError, TypeError):
+                    continue
+        finally:
+            self._finish_reading_streams += 1
+            async with self._fp_condition:
+                self._fp_condition.notify_all()
+            await reader.close()
 
     async def _read_data_from_stream(self, stream: str, main_key: str):
         yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
@@ -244,6 +292,7 @@ class TelescopeDtaCollector:
                     f"& {self._get_download_stream()}")
         self._finish_reading_streams = 0
         coros = [self._read_data_from_download(),
+                 self._read_data_from_faststat(),
                  self._read_data_from_stream(self._get_raw_stream(), TelescopeDtaCollector._STR_NAME_RAW),
                  self._read_data_from_stream(self._get_zdf_stream(), TelescopeDtaCollector._STR_NAME_ZDF),
                  self._evaluate_data(),
@@ -260,12 +309,12 @@ class TelescopeDtaCollector:
                 self._unchecked_ids = set()  # reset ids
                 for id_ in unchecked_ids:
                     pair = self._fits_pair.get(id_)  # pair is always !=Null
-                    logger.info(f"Evaluating pair for id: {id_}")
+                    logger.debug(f"Evaluating pair for id: {id_}")
 
                     # if dict has _NUMBER_STREAMS key that mean we have all data to process
                     if len(pair) == TelescopeDtaCollector._NUMBER_STREAMS:
                         self._fits_pair.pop(id_)  # remove key
-                        logger.info(f"Processing pair for id: {id_}")
+                        logger.debug(f"Processing pair for id: {id_}")
                         await self._process_pair(pair)
             # process not completed fits pair (pair = raw + zdf)
             for id_, pair in self._fits_pair.items():
@@ -342,7 +391,7 @@ class TelescopeDtaCollector:
                     o.filters.add(filter_)  # add filter if not exist
                 logger.debug(f"Object {obj} count updated to: {o.count}")
 
-            logger.info(f"Finished processing pair. Total fits count: {self.count_fits}")
+            logger.debug(f"Finished processing pair. Total fits count: {self.count_fits}")
         except (KeyboardInterrupt, asyncio.CancelledError, asyncio.TimeoutError):
             raise
         except Exception as e:
