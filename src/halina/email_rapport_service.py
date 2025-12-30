@@ -39,7 +39,7 @@ class EmailRapportService(ServiceNatsDependent):
     def _get_moon_phase(lat: float, lon: float, elev: float) -> str:
         if isinstance(lat, float) and isinstance(lon, float) and isinstance(elev, Union[float, int]):
             _moon_phase = moon_phase(
-                date_utc=DateUtils.yesterday_midnight_utc(), latitude=lat, longitude=lon, elevation=elev
+                date_utc=DateUtils.yesterday_midnight_utc_tz(), latitude=lat, longitude=lon, elevation=elev
             )
             if isinstance(_moon_phase, float):
                 return f" Moon phase: {round(_moon_phase)}%"
