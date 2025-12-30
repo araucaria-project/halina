@@ -1,9 +1,10 @@
 import asyncio
 import datetime
 import logging
-from typing import List
+from typing import List, Dict, Union
 import plotly.graph_objects as go
 
+from halina.email_rapport.data_collector_classes.fwhm_point import FwhmPoint
 from halina.email_rapport.data_collector_classes.weather_point import WeatherPoint
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
@@ -13,6 +14,9 @@ class WeatherChartBuilder:
     _SCALE_MARGIN = 0.5
     _WIND_AREA2 = 14  # wind speed red area
     _WIND_AREA1 = 11  # wind speed yellow area
+    _MARGIN_DICT = dict(l=40, r=20, t=28, b=35)
+    _HEIGHT = 200
+    _WIDTH = 800
 
     def __init__(self):
         self._title: str = "Weather"
@@ -21,7 +25,9 @@ class WeatherChartBuilder:
         self._image_temperature_byte = None
         self._image_humidity_byte = None
         self._image_pressure_byte = None
+        self._image_fwhm_byte = None
         self._timezone_axes = 0
+        self._data_fwhm: Dict[str, Dict[str, Union[str, List[FwhmPoint]]]] = {}
 
     def get_image_wind_byte(self):
         return self._image_wind_byte
@@ -35,14 +41,27 @@ class WeatherChartBuilder:
     def get_image_pressure_byte(self):
         return self._image_pressure_byte
 
+    def get_image_fwhm_byte(self):
+        return self._image_fwhm_byte
+
     def set_data_weather(self, data_weather: List[WeatherPoint]):
         self._data_weather = data_weather
+
+    def set_data_fwhm(self, data_fwhm: Dict[str, Dict[str, Union[str, List[FwhmPoint]]]]) -> None:
+        self._data_fwhm = data_fwhm
 
     def data_weather(self, data_weather: List[WeatherPoint]):
         self.set_data_weather(data_weather=data_weather)
         return self
 
-    async def build(self):
+    def hex_to_rgba(self, hex_color: str, alpha: float) -> str:
+        hex_color = hex_color.lstrip("#")
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        return f"rgba({r},{g},{b},{alpha})"
+
+    async def build(self) -> None:
         tim_ax = self._timezone_axes
         if not self._data_weather:
             return None
@@ -72,10 +91,16 @@ class WeatherChartBuilder:
             wind_red_area_top = max_wind + WeatherChartBuilder._SCALE_MARGIN
         else:
             wind_red_area_top = WeatherChartBuilder._WIND_AREA2 + WeatherChartBuilder._SCALE_MARGIN
+
         # wind
         fig_wind = go.Figure(layout_yaxis_range=[0, wind_red_area_top])
-        fig_wind.update_layout(title_text='<b>Wind [m/s]</b>', title_x=0.5,
-                               xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>")
+        fig_wind.update_layout(
+            title_text='<b>Wind [m/s]</b>', title_x=0.5,
+            # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
+            width=800,
+            height=200,
+            margin=self._MARGIN_DICT
+        )
         fig_wind.add_trace(go.Scatter(x=hours, y=winds))
         fig_wind.add_hrect(y0=WeatherChartBuilder._WIND_AREA1, y1=WeatherChartBuilder._WIND_AREA2,
                            line_width=0, fillcolor="yellow", opacity=0.2)
@@ -86,26 +111,96 @@ class WeatherChartBuilder:
 
         # temperature
         fig_temperature = go.Figure()
-        fig_temperature.update_layout(title_text='<b>Temperature [C]</b>', title_x=0.5,
-                                      xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>")
+        fig_temperature.update_layout(
+            title_text='<b>Temperature [C]</b>', title_x=0.5,
+            # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
+            width=800,
+            height=200,
+            margin=self._MARGIN_DICT
+            )
         fig_temperature.add_trace(go.Scatter(x=hours, y=temperatures))
         self._image_temperature_byte = fig_temperature.to_image(format="png")
         await asyncio.sleep(0)
 
         # humidity
         fig_humidity = go.Figure()
-        fig_humidity.update_layout(title_text='<b>Humidity [%]</b>', title_x=0.5,
-                                   xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>")
+        fig_humidity.update_layout(
+            title_text='<b>Humidity [%]</b>', title_x=0.5,
+            # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
+            width=800,
+            height=200,
+            margin=self._MARGIN_DICT
+            )
         fig_humidity.add_trace(go.Scatter(x=hours, y=humiditys))
         self._image_humidity_byte = fig_humidity.to_image(format="png")
         await asyncio.sleep(0)
 
         # pressure
         fig_pressure = go.Figure()
-        fig_pressure.update_layout(title_text='<b>Pressure [hPa]</b>', title_x=0.5,
-                                   xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>")
+        fig_pressure.update_layout(
+            title_text='<b>Pressure [hPa]</b>', title_x=0.5,
+            # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
+            width=800,
+            height=200,
+            margin=self._MARGIN_DICT
+            )
         fig_pressure.add_trace(go.Scatter(x=hours, y=pressures))
         self._image_pressure_byte = fig_pressure.to_image(format="png")
+
+        # fwhm
+        fig_fwhm = go.Figure()
+        fig_fwhm.update_layout(
+            title_text='<b>FWHM [arcsec]</b>', title_x=0.5,
+            # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
+            width=800,
+            height=200,
+            margin=self._MARGIN_DICT,
+            legend=dict(
+                x=0.01,
+                y=0.99,
+                xanchor="left",
+                yanchor="top",
+                bgcolor="rgba(255,255,255,0.6)",
+                borderwidth=0
+            )
+        )
+        fig_fwhm.update_xaxes(
+            range=[hours[0], hours[-1]]
+        )
+        for _tel, _tel_dat in self._data_fwhm.items():
+            fwhm = []
+            hours = []
+
+            try:
+                color = _tel_dat['color']
+            except (LookupError, ValueError, TypeError):
+                color = '#A9A9A9'
+
+            try:
+                fwhm_data = _tel_dat['fwhm_data']
+            except (LookupError, ValueError, TypeError):
+                fwhm_data = []
+            for fwhm_point in fwhm_data:
+                try:
+                    fwhm.append(fwhm_point.fwhm * fwhm_point.scale)
+                    hours.append(fwhm_point.date)
+                except (ValueError, TypeError):
+                    pass
+            fig_fwhm.add_trace(go.Scatter(
+                x=hours,
+                y=fwhm,
+                mode="markers",
+                name=_tel,
+                marker=dict(
+                    color=self.hex_to_rgba(hex_color=color, alpha=0.2),
+                    size=5,
+                    line=dict(
+                        color=color,
+                        width=0.5
+                    )
+                )
+            ))
+        self._image_fwhm_byte = fig_fwhm.to_image(format="png")
 
         stop = datetime.datetime.now(datetime.timezone.utc)
         logger.info(f"Plots was created. Proces takes: {(stop - start).total_seconds()}")

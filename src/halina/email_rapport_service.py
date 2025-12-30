@@ -1,18 +1,22 @@
 import asyncio
 import datetime
 import logging
-from typing import Dict, List
-from serverish.messenger import Messenger
+import math
+from typing import Dict, List, Union, Optional
+
+from astropy.coordinates import get_moon
+
 from configuration import GlobalConfig
-from halina.asyncio_util_functions import wait_for_psce
 from halina.date_utils import DateUtils
+from halina.email_rapport.data_collector_classes.fwhm_point import FwhmPoint
 from halina.email_rapport.email_builder import EmailBuilder
 from halina.email_rapport.email_sender import EmailSender
 from halina.email_rapport.telescope_data_collector import TelescopeDtaCollector
 from halina.email_rapport.weather_chart_builder import WeatherChartBuilder
 from halina.email_rapport.weather_data_collector import WeatherDataCollector
-from halina.nats_connection_service import NatsConnectionService
 from halina.service_nats_dependent import ServiceNatsDependent
+from pyaraucaria.ephemeris import moon_phase
+from pyaraucaria.date import get_oca_jd, datetime_to_julian
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
@@ -30,6 +34,23 @@ class EmailRapportService(ServiceNatsDependent):
         self._telescopes: List[str] = GlobalConfig.get(GlobalConfig.TELESCOPES)
         self._send_at_time = datetime.time(GlobalConfig.get(GlobalConfig.SEND_AT),
                                            GlobalConfig.get(GlobalConfig.SEND_AT_MIN))
+
+    @staticmethod
+    def _get_moon_phase(lat: float, lon: float, elev: float) -> str:
+        if isinstance(lat, float) and isinstance(lon, float) and isinstance(elev, Union[float, int]):
+            _moon_phase = moon_phase(
+                date_utc=DateUtils.yesterday_midnight_utc_tz(), latitude=lat, longitude=lon, elevation=elev
+            )
+            if isinstance(_moon_phase, float):
+                return f" Moon phase: {round(_moon_phase)}%"
+            else:
+                return ''
+        else:
+            return ''
+
+    @staticmethod
+    def _get_oca_jd() -> str:
+        return f", OCM night: {math.floor(get_oca_jd(datetime_to_julian(DateUtils.yesterday_midnight_utc())))}"
 
     @staticmethod
     def _format_night() -> str:
@@ -60,7 +81,7 @@ class EmailRapportService(ServiceNatsDependent):
                     logger.debug(f"Finish sending emails today: {now.date()}")
                     working_time_minutes = (stop - start).total_seconds() / 60
                     logger.info(f"Email sender finish sending message today: {now.date()} . "
-                                f"Proses takes {working_time_minutes}")
+                                f"Proces takes {working_time_minutes}")
                 except SendEmailException as e:
                     logger.error(f"Email sender service cath error: {e}")
 
@@ -104,6 +125,7 @@ class EmailRapportService(ServiceNatsDependent):
 
         # Prepare data for email
         telescope_data: List[Dict[str, int]] = []
+        fwhm_data: Dict[str, Dict[str, Union[str, List[FwhmPoint]]]] = {}
         for tel in self._telescopes:
             telescope_info = {
                 'name': tel,
@@ -116,9 +138,15 @@ class EmailRapportService(ServiceNatsDependent):
                 'fits_group_type': telescopes[tel].fits_group_type
             }
             telescope_data.append(telescope_info)
+            fwhm_data[tel] = {'color': telescopes[tel].color, 'fwhm_data': telescopes[tel].fwhm_data}
 
         # Build and send email
         night = self._format_night()
+        _moon_phase = self._get_moon_phase(
+            lat=telescopes[self._telescopes[0]].tel_lat,
+            lon=telescopes[self._telescopes[0]].tel_lon,
+            elev=telescopes[self._telescopes[0]].tel_elev
+        )
         email_recipients: List[str] = GlobalConfig.get(GlobalConfig.EMAILS_TO)
 
         if len(email_recipients) == 0:
@@ -127,16 +155,21 @@ class EmailRapportService(ServiceNatsDependent):
         # build charts
         wcb = WeatherChartBuilder()
         wcb.set_data_weather(wdc.data_weather)
+        wcb.set_data_fwhm(fwhm_data)
         await wcb.build()
 
         email_builder = (EmailBuilder()
                          .subject(f"Night Report - {night}")
                          .night(night)
+                         .oca_jd(self._get_oca_jd())
+                         .moon_phase(_moon_phase)
                          .telescope_data(telescope_data)
                          .wind_chart(wcb.get_image_wind_byte())
                          .temperature_chart(wcb.get_image_temperature_byte())
                          .humidity_hart(wcb.get__image_humidity_byte())
-                         .pressure_hart(wcb.get_image_pressure_byte()))
+                         .pressure_hart(wcb.get_image_pressure_byte())
+                         .fwhm_hart(wcb.get_image_fwhm_byte())
+                         )
 
         email_message = await email_builder.build()
 

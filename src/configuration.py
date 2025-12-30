@@ -46,6 +46,7 @@ class GlobalConfig:
     SEND_AT = "SEND_AT"
     SEND_AT_MIN = "SEND_AT_MIN"
     RAPPORT_FILE_TARGET_PATH = "RAPPORT_FILE_TARGET_PATH"
+    CHARTS_UTC_OFFSET_HOURS = "CHARTS_UTC_OFFSET_HOURS"
 
     # dict of empty values. If someone will be overridden by not None value, this value will be return instead
     # value from config
@@ -61,6 +62,7 @@ class GlobalConfig:
         FROM_EMAIL: __ConfigVal(str),
         FROM_NAME: __ConfigVal(str),
         SMTP_PASSWORD: __ConfigVal(str),
+        CHARTS_UTC_OFFSET_HOURS: __ConfigVal(float),
         SEND_AT: __ConfigVal(int),  # at witch hour will be sent email
         RAPPORT_FILE_TARGET_PATH: __ConfigVal(str),  # at witch hour will be sent email
     }

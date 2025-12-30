@@ -23,11 +23,14 @@ class EmailBuilder:
     def __init__(self):
         self._subject: str = ""
         self._night: str = ""
+        self._moon_phase: str = ""
+        self._oca_jd: str = ""
         self._telescope_data: List[Dict[str, Any]] = []
         self._wind_chart = None
         self._temperature_chart = None
         self._pressure_hart = None
         self._humidity_hart = None
+        self._fwhm_hart = None
 
     def set_subject(self, subject: str) -> None:
         self._subject = subject
@@ -42,6 +45,20 @@ class EmailBuilder:
 
     def night(self, night: str) -> 'EmailBuilder':
         self.set_night(night)
+        return self
+
+    def set_moon_phase(self, moon_phase: str) -> None:
+        self._moon_phase = moon_phase
+
+    def moon_phase(self, moon_phase: str) -> 'EmailBuilder':
+        self.set_moon_phase(moon_phase)
+        return self
+
+    def set_oca_jd(self, oca_jd: str) -> None:
+        self._oca_jd = oca_jd
+
+    def oca_jd(self, oca_jd: str) -> 'EmailBuilder':
+        self.set_oca_jd(oca_jd)
         return self
 
     def set_telescope_data(self, telescope_data: List[Dict[str, Any]]) -> None:
@@ -80,6 +97,13 @@ class EmailBuilder:
         self.set_humidity_hart(chart)
         return self
 
+    def set_fwhm_hart(self, chart: bytes):
+        self._fwhm_hart = chart
+
+    def fwhm_hart(self, chart: bytes):
+        self.set_fwhm_hart(chart)
+        return self
+
     async def build(self) -> MIMEMultipart:
         logger.info("Building the email.")
         env = Environment(loader=FileSystemLoader(RESOURCES_DIR))
@@ -87,6 +111,8 @@ class EmailBuilder:
         context = {
             'night': self._night,
             'telescope_data': self._telescope_data,
+            'moon_phase': self._moon_phase,
+            'oca_jd': self._oca_jd
         }
         content = template.render(context)
 
@@ -114,6 +140,9 @@ class EmailBuilder:
         # Attach pressure chart
         await EmailBuilder._add_chart_to_message(message=message, chart=self._pressure_hart,
                                                  chart_name="pressure_chart")
+
+        await EmailBuilder._add_chart_to_message(message=message, chart=self._fwhm_hart,
+                                                 chart_name="fwhm_chart")
 
         logger.info("Logos charts attached to email.")
         # Attach logo araucaria
