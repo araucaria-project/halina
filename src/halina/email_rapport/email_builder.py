@@ -31,6 +31,7 @@ class EmailBuilder:
         self._pressure_hart = None
         self._humidity_hart = None
         self._fwhm_hart = None
+        self._power_chart = None
 
     def set_subject(self, subject: str) -> None:
         self._subject = subject
@@ -104,6 +105,13 @@ class EmailBuilder:
         self.set_fwhm_hart(chart)
         return self
 
+    def set_power_chart(self, chart: bytes):
+        self._power_chart = chart
+
+    def power_chart(self, chart: bytes):
+        self.set_power_chart(chart)
+        return self
+
     async def build(self) -> MIMEMultipart:
         logger.info("Building the email.")
         env = Environment(loader=FileSystemLoader(RESOURCES_DIR))
@@ -143,6 +151,9 @@ class EmailBuilder:
 
         await EmailBuilder._add_chart_to_message(message=message, chart=self._fwhm_hart,
                                                  chart_name="fwhm_chart")
+
+        await EmailBuilder._add_chart_to_message(message=message, chart=self._power_chart,
+                                                 chart_name="power_chart")
 
         logger.info("Logos charts attached to email.")
         # Attach logo araucaria
