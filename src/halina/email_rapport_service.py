@@ -11,8 +11,9 @@ from halina.date_utils import DateUtils
 from halina.email_rapport.data_collector_classes.fwhm_point import FwhmPoint
 from halina.email_rapport.email_builder import EmailBuilder
 from halina.email_rapport.email_sender import EmailSender
+from halina.email_rapport.power_data_collector import PowerDataCollector
 from halina.email_rapport.telescope_data_collector import TelescopeDtaCollector
-from halina.email_rapport.weather_chart_builder import WeatherChartBuilder
+from halina.email_rapport.chart_builder import ChartBuilder
 from halina.email_rapport.weather_data_collector import WeatherDataCollector
 from halina.service_nats_dependent import ServiceNatsDependent
 from pyaraucaria.ephemeris import moon_phase
@@ -113,11 +114,12 @@ class EmailRapportService(ServiceNatsDependent):
                 telescopes[tel] = TelescopeDtaCollector(telescope_name=tel, utc_offset=self._utc_offset)
 
         # weather collector
-        wdc = WeatherDataCollector()
-
-        coros = [i.collect_data() for i in telescopes.values()]
-        coros.append(wdc.collect_data())
-        await asyncio.gather(*coros, return_exceptions=True)
+        weather_data_coll = WeatherDataCollector()
+        power_data_coll = PowerDataCollector()
+        coro = [i.collect_data() for i in telescopes.values()]
+        coro.append(weather_data_coll.collect_data())
+        coro.append(power_data_coll.collect_data())
+        await asyncio.gather(*coro, return_exceptions=True)
 
         logger.info(f"Scanning stream for fits completed.")
         for name, i in telescopes.items():
@@ -153,10 +155,11 @@ class EmailRapportService(ServiceNatsDependent):
             logger.info(f"No recipient specified.")
 
         # build charts
-        wcb = WeatherChartBuilder()
-        wcb.set_data_weather(wdc.data_weather)
-        wcb.set_data_fwhm(fwhm_data)
-        await wcb.build()
+        chart_builder = ChartBuilder()
+        chart_builder.set_data_weather(weather_data_coll.data_weather)
+        chart_builder.set_data_fwhm(fwhm_data)
+        chart_builder.set_data_power(power_data_coll.data_points)
+        await chart_builder.build()
 
         email_builder = (EmailBuilder()
                          .subject(f"Night Report - {night}")
@@ -164,11 +167,12 @@ class EmailRapportService(ServiceNatsDependent):
                          .oca_jd(self._get_oca_jd())
                          .moon_phase(_moon_phase)
                          .telescope_data(telescope_data)
-                         .wind_chart(wcb.get_image_wind_byte())
-                         .temperature_chart(wcb.get_image_temperature_byte())
-                         .humidity_hart(wcb.get__image_humidity_byte())
-                         .pressure_hart(wcb.get_image_pressure_byte())
-                         .fwhm_hart(wcb.get_image_fwhm_byte())
+                         .wind_chart(chart_builder.get_image_wind_byte())
+                         .temperature_chart(chart_builder.get_image_temperature_byte())
+                         .humidity_hart(chart_builder.get__image_humidity_byte())
+                         .pressure_hart(chart_builder.get_image_pressure_byte())
+                         .fwhm_hart(chart_builder.get_image_fwhm_byte())
+                         .power_chart(chart_builder.get_image_power_byte())
                          )
 
         email_message = await email_builder.build()
