@@ -271,25 +271,19 @@ class ChartBuilder:
             alpha=0.2
             if _tel == 'jk15':
                 alpha = 0.5
-
-
             fig_quality_qmap.add_trace(go.Scatter(
                 x=hours,
                 y=quality_qmap,
-                mode="lines",
+                mode="markers",
                 name=_tel,
-                line=dict(
+                marker=dict(
                     color=self.hex_to_rgba(hex_color=color, alpha=alpha),
-                    width=1
+                    size=3,
+                    line=dict(
+                        color=color,
+                        width=0.5
+                    )
                 )
-                # marker=dict(
-                #     color=self.hex_to_rgba(hex_color=color, alpha=alpha),
-                #     size=5,
-                #     line=dict(
-                #         color=color,
-                #         width=0.5
-                #     )
-                # )
             ))
         self._image_quality_qmap_byte = fig_quality_qmap.to_image(format="png")
 
