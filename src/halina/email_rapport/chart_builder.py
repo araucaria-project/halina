@@ -5,6 +5,7 @@ from typing import List, Dict, Union
 import plotly.graph_objects as go
 
 from halina.email_rapport.data_collector_classes.fwhm_point import FwhmPoint
+from halina.email_rapport.data_collector_classes.phot_zero_point import PhotZeroPoint
 from halina.email_rapport.data_collector_classes.power_point import PowerPoint
 from halina.email_rapport.data_collector_classes.quality_qmap_point import QualityQmapPoint
 from halina.email_rapport.data_collector_classes.weather_point import WeatherPoint
@@ -34,10 +35,12 @@ class ChartBuilder:
         self._image_pressure_byte = None
         self._image_fwhm_byte = None
         self._image_quality_qmap_byte = None
+        self._image_phot_zero_byte = None
         self._image_power_byte = None
         self._timezone_axes = 0
         self._data_fwhm: Dict[str, Dict[str, Union[str, List[FwhmPoint]]]] = {}
         self._data_quality_qmap: Dict[str, Dict[str, Union[str, List[QualityQmapPoint]]]] = {}
+        self._data_phot_zero: Dict[str, Dict[str, Union[str, List[PhotZeroPoint]]]] = {}
         self._data_power: List[PowerPoint] = []
 
     def get_image_wind_byte(self):
@@ -58,6 +61,9 @@ class ChartBuilder:
     def get_image_quality_qmap_byte(self):
         return self._image_quality_qmap_byte
 
+    def get_image_phot_zero_byte(self):
+        return self._image_phot_zero_byte
+
     def get_image_power_byte(self):
         return self._image_power_byte
 
@@ -72,6 +78,9 @@ class ChartBuilder:
 
     def set_data_quality_qmap(self, data_quality_qmap: Dict[str, Dict[str, Union[str, List[QualityQmapPoint]]]]) -> None:
         self._data_quality_qmap = data_quality_qmap
+
+    def set_data_phot_zero(self, data_phot_zero: Dict[str, Dict[str, Union[str, List[PhotZeroPoint]]]]) -> None:
+        self._data_phot_zero = data_phot_zero
 
     def data_weather(self, data_weather: List[WeatherPoint]):
         self.set_data_weather(data_weather=data_weather)
@@ -286,6 +295,69 @@ class ChartBuilder:
                 )
             ))
         self._image_quality_qmap_byte = fig_quality_qmap.to_image(format="png")
+
+
+        # photometric zero
+        fig_phot_zero = go.Figure()
+        fig_phot_zero.update_layout(
+            title_text='<b>Photometric Zero [ADU]</b>', title_x=0.5,
+            # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
+            width=self._WIDTH,
+            height=self._HEIGHT,
+            margin=self._MARGIN_DICT,
+            legend=dict(
+                x=0.01,
+                y=0.99,
+                xanchor="left",
+                yanchor="top",
+                bgcolor="rgba(255,255,255,0.6)",
+                borderwidth=0
+            )
+        )
+        fig_phot_zero.update_xaxes(
+            range=[weather_hours[0], weather_hours[-1]]
+        )
+        filter_color = {'V': 'green', 'B': 'blue', 'Ic': 'red'}
+        # gaussian_filter1d(y_sorted, sigma=6),
+        for _tel, _tel_dat in self._data_phot_zero.items():
+            phot_zero = []
+            hours = []
+            filters = []
+
+            try:
+                color = _tel_dat['color']
+            except (LookupError, ValueError, TypeError):
+                color = '#A9A9A9'
+
+            try:
+                phot_zero_data = _tel_dat['quality_qmap_data']
+            except (LookupError, ValueError, TypeError):
+                phot_zero_data = []
+            for phot_zero_point in phot_zero_data:
+                try:
+                    filters.append(phot_zero_point.filter_)
+                    phot_zero.append(phot_zero_point.zero_point)
+                    hours.append(phot_zero_point.date)
+                except (ValueError, TypeError):
+                    pass
+            alpha=0.2
+            if _tel == 'jk15':
+                alpha = 0.5
+            fig_phot_zero.add_trace(go.Scatter(
+                x=hours,
+                y=phot_zero,
+                mode="markers",
+                name=_tel,
+                marker=dict(
+                    color=self.hex_to_rgba(hex_color=color, alpha=alpha),
+                    size=4,
+                    line=dict(
+                        color=color,
+                        width=0.5
+                    )
+                )
+            ))
+        self._image_phot_zero_byte = fig_phot_zero.to_image(format="png")
 
         # power
         # {'ts': [2025, 12, 29, 12, 0, 4, 954440], 'version': '3.2.1',

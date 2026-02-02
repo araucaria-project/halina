@@ -33,6 +33,7 @@ class EmailBuilder:
         self._fwhm_hart = None
         self._power_chart = None
         self._quality_qmap_chart = None
+        self._phot_zero_chart = None
 
     def set_subject(self, subject: str) -> None:
         self._subject = subject
@@ -113,6 +114,13 @@ class EmailBuilder:
         self.set_quality_qmap_chart(chart)
         return self
 
+    def set_phot_zero_chart(self, chart: bytes):
+        self._phot_zero_chart = chart
+
+    def phot_zero_chart(self, chart: bytes):
+        self.set_phot_zero_chart(chart)
+        return self
+
     def set_power_chart(self, chart: bytes):
         self._power_chart = chart
 
@@ -162,6 +170,9 @@ class EmailBuilder:
 
         await EmailBuilder._add_chart_to_message(message=message, chart=self._quality_qmap_chart,
                                                  chart_name="quality_qmap_chart")
+
+        await EmailBuilder._add_chart_to_message(message=message, chart=self._phot_zero_chart,
+                                                 chart_name="phot_zero_chart")
 
         await EmailBuilder._add_chart_to_message(message=message, chart=self._power_chart,
                                                  chart_name="power_chart")
