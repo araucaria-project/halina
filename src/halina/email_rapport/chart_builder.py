@@ -319,7 +319,6 @@ class ChartBuilder:
         )
         filter_color = {'V': 'green', 'B': 'blue', 'Ic': 'red'}
         # gaussian_filter1d(y_sorted, sigma=6),
-        logger.info(self._data_phot_zero)
         for _tel, _tel_dat in self._data_phot_zero.items():
             phot_zero = []
             hours = []
@@ -331,7 +330,7 @@ class ChartBuilder:
                 color = '#A9A9A9'
 
             try:
-                phot_zero_data = _tel_dat['quality_qmap_data']
+                phot_zero_data = _tel_dat['phot_zero_data']
             except (LookupError, ValueError, TypeError):
                 phot_zero_data = []
             for phot_zero_point in phot_zero_data:
