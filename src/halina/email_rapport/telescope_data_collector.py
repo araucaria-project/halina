@@ -240,16 +240,16 @@ class TelescopeDtaCollector:
                     break
                 # logger.info(header.get("DATE-OBS"))
                 # logger.info(content)
-                try:
-                    date_obs = header.get("DATE-OBS")
-                    stars_presence = content.get("stars_presence")
-                    ratio_no_bkg = stars_presence.get("ratio_no_bkg")
-                    ratio_no_bkg_1 = ratio_no_bkg.get("1")
-                    self.quality_qmap_data.append(QualityQmapPoint(
-                        date=datetime.datetime.fromisoformat(date_obs), ratio_no_bkg_1=ratio_no_bkg_1
-                    ))
-                except (LookupError, ValueError, TypeError):
-                    pass
+                # try:
+                #     date_obs = header.get("DATE-OBS")
+                #     stars_presence = content.get("stars_presence")
+                #     ratio_no_bkg = stars_presence.get("ratio_no_bkg")
+                #     ratio_no_bkg_1 = ratio_no_bkg.get("1")
+                #     self.quality_qmap_data.append(QualityQmapPoint(
+                #         date=datetime.datetime.fromisoformat(date_obs), ratio_no_bkg_1=ratio_no_bkg_1
+                #     ))
+                # except (LookupError, ValueError, TypeError):
+                #     pass
                 async with self._fp_condition:
                     if self._fits_pair.get(fits_id, None) is None:
                         self._fits_pair[fits_id] = {}
