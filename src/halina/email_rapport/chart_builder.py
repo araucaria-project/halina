@@ -91,7 +91,7 @@ class ChartBuilder:
             return None
         # TODO if creating plot will take to much time, should think about run it in multiprocessing
         #  (not recognised implementation) or thread (dificult to implement)
-        hours = []
+        weather_hours = []
         winds = []
         temperatures = []
         humiditys = []
@@ -102,7 +102,7 @@ class ChartBuilder:
         for dat in self._data_weather:
             if max_wind < dat.wind:
                 max_wind = dat.wind
-            hours.append(dat.date)
+            weather_hours.append(dat.date)
             winds.append(dat.wind)
             temperatures.append(dat.temperature)
             humiditys.append(dat.humidity)
@@ -125,7 +125,7 @@ class ChartBuilder:
             height=200,
             margin=self._MARGIN_DICT
         )
-        fig_wind.add_trace(go.Scatter(x=hours, y=winds))
+        fig_wind.add_trace(go.Scatter(x=weather_hours, y=winds))
         fig_wind.add_hrect(y0=ChartBuilder._WIND_AREA1, y1=ChartBuilder._WIND_AREA2,
                            line_width=0, fillcolor="yellow", opacity=0.2)
         fig_wind.add_hrect(y0=ChartBuilder._WIND_AREA2, y1=wind_red_area_top,
@@ -142,7 +142,7 @@ class ChartBuilder:
             height=200,
             margin=self._MARGIN_DICT
             )
-        fig_temperature.add_trace(go.Scatter(x=hours, y=temperatures))
+        fig_temperature.add_trace(go.Scatter(x=weather_hours, y=temperatures))
         self._image_temperature_byte = fig_temperature.to_image(format="png")
         await asyncio.sleep(0)
 
@@ -155,7 +155,7 @@ class ChartBuilder:
             height=200,
             margin=self._MARGIN_DICT
             )
-        fig_humidity.add_trace(go.Scatter(x=hours, y=humiditys))
+        fig_humidity.add_trace(go.Scatter(x=weather_hours, y=humiditys))
         self._image_humidity_byte = fig_humidity.to_image(format="png")
         await asyncio.sleep(0)
 
@@ -168,7 +168,7 @@ class ChartBuilder:
             height=200,
             margin=self._MARGIN_DICT
             )
-        fig_pressure.add_trace(go.Scatter(x=hours, y=pressures))
+        fig_pressure.add_trace(go.Scatter(x=weather_hours, y=pressures))
         self._image_pressure_byte = fig_pressure.to_image(format="png")
 
         # fwhm
@@ -189,7 +189,7 @@ class ChartBuilder:
             )
         )
         fig_fwhm.update_xaxes(
-            range=[hours[0], hours[-1]]
+            range=[weather_hours[0], weather_hours[-1]]
         )
         for _tel, _tel_dat in self._data_fwhm.items():
             fwhm = []
@@ -247,7 +247,7 @@ class ChartBuilder:
             )
         )
         fig_quality_qmap.update_xaxes(
-            range=[hours[0], hours[-1]]
+            range=[weather_hours[0], weather_hours[-1]]
         )
         for _tel, _tel_dat in self._data_quality_qmap.items():
             quality_qmap = []
@@ -271,19 +271,25 @@ class ChartBuilder:
             alpha=0.2
             if _tel == 'jk15':
                 alpha = 0.5
+
+
             fig_quality_qmap.add_trace(go.Scatter(
                 x=hours,
                 y=quality_qmap,
-                mode="markers",
+                mode="lines",
                 name=_tel,
-                marker=dict(
+                line=dict(
                     color=self.hex_to_rgba(hex_color=color, alpha=alpha),
-                    size=5,
-                    line=dict(
-                        color=color,
-                        width=0.5
-                    )
+                    width=1
                 )
+                # marker=dict(
+                #     color=self.hex_to_rgba(hex_color=color, alpha=alpha),
+                #     size=5,
+                #     line=dict(
+                #         color=color,
+                #         width=0.5
+                #     )
+                # )
             ))
         self._image_quality_qmap_byte = fig_quality_qmap.to_image(format="png")
 
