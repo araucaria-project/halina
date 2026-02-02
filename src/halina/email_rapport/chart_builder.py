@@ -340,7 +340,7 @@ class ChartBuilder:
                 phot_zero_data = []
             for phot_zero_point in phot_zero_data:
                 try:
-                    filters.append(phot_zero_point.filter_)
+                    filters.append(filter_color[phot_zero_point.filter_])
                     phot_zero.append(phot_zero_point.zero_point)
                     phot_zero_all.append(phot_zero_point.zero_point)
                     hours.append(phot_zero_point.date)
@@ -359,7 +359,7 @@ class ChartBuilder:
                     color=self.hex_to_rgba(hex_color=color, alpha=alpha),
                     size=4,
                     line=dict(
-                        color=color,
+                        color=filters,
                         width=0.5
                     )
                 )
