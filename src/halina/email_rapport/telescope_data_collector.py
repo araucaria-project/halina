@@ -238,8 +238,8 @@ class TelescopeDtaCollector:
                 # than 1, it means that the day has passed and there is another night
                 if (jd_today_midday - jd) >= 1:
                     break
-                logger.info(header.get("DATE-OBS"))
-                logger.info(content)
+                # logger.info(header.get("DATE-OBS"))
+                # logger.info(content)
                 try:
                     date_obs = header.get("DATE-OBS")
                     stars_presence = content.get("stars_presence")
