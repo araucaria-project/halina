@@ -220,9 +220,8 @@ class TelescopeDtaCollector:
                 except asyncio.TimeoutError:
                     logger.info(f"Stop waiting for new date in stream - stream is empty. {stream}")
                     break
-
+                logger.info(data)
                 try:
-                    date_obs: str = data['raw']['header']['DATE-OBS']
                     jd: float = get_jd_from_oca_jd(oca_jd=data['oca_jd'])
                     zero_point: float = data['zero_value']
                     filter_: str = data['filter']
