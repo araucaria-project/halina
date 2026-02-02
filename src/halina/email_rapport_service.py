@@ -9,6 +9,8 @@ from astropy.coordinates import get_moon
 from configuration import GlobalConfig
 from halina.date_utils import DateUtils
 from halina.email_rapport.data_collector_classes.fwhm_point import FwhmPoint
+from halina.email_rapport.data_collector_classes.quality_qmap_point import QualityQmapPoint
+from halina.email_rapport.data_collector_classes.phot_zero_point import PhotZeroPoint
 from halina.email_rapport.email_builder import EmailBuilder
 from halina.email_rapport.email_sender import EmailSender
 from halina.email_rapport.power_data_collector import PowerDataCollector
@@ -128,6 +130,9 @@ class EmailRapportService(ServiceNatsDependent):
         # Prepare data for email
         telescope_data: List[Dict[str, int]] = []
         fwhm_data: Dict[str, Dict[str, Union[str, List[FwhmPoint]]]] = {}
+        quality_qmap_data: Dict[str, Dict[str, Union[str, List[QualityQmapPoint]]]] = {}
+        phot_zero_data: Dict[str, Dict[str, Union[str, List[PhotZeroPoint]]]] = {}
+
         for tel in self._telescopes:
             telescope_info = {
                 'name': tel,
@@ -141,6 +146,12 @@ class EmailRapportService(ServiceNatsDependent):
             }
             telescope_data.append(telescope_info)
             fwhm_data[tel] = {'color': telescopes[tel].color, 'fwhm_data': telescopes[tel].fwhm_data}
+            quality_qmap_data[tel] = {
+                'color': telescopes[tel].color, 'quality_qmap_data': telescopes[tel].quality_qmap_data
+            }
+            phot_zero_data[tel] = {
+                'color': telescopes[tel].color, 'phot_zero_data': telescopes[tel].phot_zero_data
+            }
 
         # Build and send email
         night = self._format_night()
@@ -158,6 +169,8 @@ class EmailRapportService(ServiceNatsDependent):
         chart_builder = ChartBuilder()
         chart_builder.set_data_weather(weather_data_coll.data_weather)
         chart_builder.set_data_fwhm(fwhm_data)
+        chart_builder.set_data_quality_qmap(quality_qmap_data)
+        chart_builder.set_data_phot_zero(phot_zero_data)
         chart_builder.set_data_power(power_data_coll.data_points)
         await chart_builder.build()
 
@@ -172,6 +185,8 @@ class EmailRapportService(ServiceNatsDependent):
                          .humidity_hart(chart_builder.get__image_humidity_byte())
                          .pressure_hart(chart_builder.get_image_pressure_byte())
                          .fwhm_hart(chart_builder.get_image_fwhm_byte())
+                         .quality_qmap_chart(chart_builder.get_image_quality_qmap_byte())
+                         .phot_zero_chart(chart_builder.get_image_phot_zero_byte())
                          .power_chart(chart_builder.get_image_power_byte())
                          )
 

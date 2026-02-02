@@ -2,10 +2,15 @@ import asyncio
 import datetime
 import logging
 from typing import List, Dict, Union
+
+import numpy as np
 import plotly.graph_objects as go
+from scipy.ndimage import gaussian_filter1d
 
 from halina.email_rapport.data_collector_classes.fwhm_point import FwhmPoint
+from halina.email_rapport.data_collector_classes.phot_zero_point import PhotZeroPoint
 from halina.email_rapport.data_collector_classes.power_point import PowerPoint
+from halina.email_rapport.data_collector_classes.quality_qmap_point import QualityQmapPoint
 from halina.email_rapport.data_collector_classes.weather_point import WeatherPoint
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
@@ -17,7 +22,7 @@ class ChartBuilder:
     _WIND_AREA1 = 11  # wind speed yellow area
     _MARGIN_DICT = dict(l=40, r=20, t=28, b=35)
     _HEIGHT = 200
-    _WIDTH = 800
+    _WIDTH = 700
     _POWER = {
         'state_of_charge': {'color': '#0000FF', 'name': 'Battery [%]'},
         'solar_power': {'color': '#FFA500', 'name': 'Solar [W]'},
@@ -32,9 +37,13 @@ class ChartBuilder:
         self._image_humidity_byte = None
         self._image_pressure_byte = None
         self._image_fwhm_byte = None
+        self._image_quality_qmap_byte = None
+        self._image_phot_zero_byte = None
         self._image_power_byte = None
         self._timezone_axes = 0
         self._data_fwhm: Dict[str, Dict[str, Union[str, List[FwhmPoint]]]] = {}
+        self._data_quality_qmap: Dict[str, Dict[str, Union[str, List[QualityQmapPoint]]]] = {}
+        self._data_phot_zero: Dict[str, Dict[str, Union[str, List[PhotZeroPoint]]]] = {}
         self._data_power: List[PowerPoint] = []
 
     def get_image_wind_byte(self):
@@ -52,6 +61,12 @@ class ChartBuilder:
     def get_image_fwhm_byte(self):
         return self._image_fwhm_byte
 
+    def get_image_quality_qmap_byte(self):
+        return self._image_quality_qmap_byte
+
+    def get_image_phot_zero_byte(self):
+        return self._image_phot_zero_byte
+
     def get_image_power_byte(self):
         return self._image_power_byte
 
@@ -63,6 +78,12 @@ class ChartBuilder:
 
     def set_data_fwhm(self, data_fwhm: Dict[str, Dict[str, Union[str, List[FwhmPoint]]]]) -> None:
         self._data_fwhm = data_fwhm
+
+    def set_data_quality_qmap(self, data_quality_qmap: Dict[str, Dict[str, Union[str, List[QualityQmapPoint]]]]) -> None:
+        self._data_quality_qmap = data_quality_qmap
+
+    def set_data_phot_zero(self, data_phot_zero: Dict[str, Dict[str, Union[str, List[PhotZeroPoint]]]]) -> None:
+        self._data_phot_zero = data_phot_zero
 
     def data_weather(self, data_weather: List[WeatherPoint]):
         self.set_data_weather(data_weather=data_weather)
@@ -82,7 +103,7 @@ class ChartBuilder:
             return None
         # TODO if creating plot will take to much time, should think about run it in multiprocessing
         #  (not recognised implementation) or thread (dificult to implement)
-        hours = []
+        weather_hours = []
         winds = []
         temperatures = []
         humiditys = []
@@ -93,7 +114,7 @@ class ChartBuilder:
         for dat in self._data_weather:
             if max_wind < dat.wind:
                 max_wind = dat.wind
-            hours.append(dat.date)
+            weather_hours.append(dat.date)
             winds.append(dat.wind)
             temperatures.append(dat.temperature)
             humiditys.append(dat.humidity)
@@ -112,11 +133,11 @@ class ChartBuilder:
         fig_wind.update_layout(
             title_text='<b>Wind [m/s]</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
-            width=800,
-            height=200,
+            width=self._WIDTH,
+            height=self._HEIGHT,
             margin=self._MARGIN_DICT
         )
-        fig_wind.add_trace(go.Scatter(x=hours, y=winds))
+        fig_wind.add_trace(go.Scatter(x=weather_hours, y=winds))
         fig_wind.add_hrect(y0=ChartBuilder._WIND_AREA1, y1=ChartBuilder._WIND_AREA2,
                            line_width=0, fillcolor="yellow", opacity=0.2)
         fig_wind.add_hrect(y0=ChartBuilder._WIND_AREA2, y1=wind_red_area_top,
@@ -129,11 +150,11 @@ class ChartBuilder:
         fig_temperature.update_layout(
             title_text='<b>Temperature [C]</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
-            width=800,
-            height=200,
+            width=self._WIDTH,
+            height=self._HEIGHT,
             margin=self._MARGIN_DICT
             )
-        fig_temperature.add_trace(go.Scatter(x=hours, y=temperatures))
+        fig_temperature.add_trace(go.Scatter(x=weather_hours, y=temperatures))
         self._image_temperature_byte = fig_temperature.to_image(format="png")
         await asyncio.sleep(0)
 
@@ -142,11 +163,11 @@ class ChartBuilder:
         fig_humidity.update_layout(
             title_text='<b>Humidity [%]</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
-            width=800,
-            height=200,
+            width=self._WIDTH,
+            height=self._HEIGHT,
             margin=self._MARGIN_DICT
             )
-        fig_humidity.add_trace(go.Scatter(x=hours, y=humiditys))
+        fig_humidity.add_trace(go.Scatter(x=weather_hours, y=humiditys))
         self._image_humidity_byte = fig_humidity.to_image(format="png")
         await asyncio.sleep(0)
 
@@ -155,11 +176,11 @@ class ChartBuilder:
         fig_pressure.update_layout(
             title_text='<b>Pressure [hPa]</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
-            width=800,
-            height=200,
+            width=self._WIDTH,
+            height=self._HEIGHT,
             margin=self._MARGIN_DICT
             )
-        fig_pressure.add_trace(go.Scatter(x=hours, y=pressures))
+        fig_pressure.add_trace(go.Scatter(x=weather_hours, y=pressures))
         self._image_pressure_byte = fig_pressure.to_image(format="png")
 
         # fwhm
@@ -167,8 +188,8 @@ class ChartBuilder:
         fig_fwhm.update_layout(
             title_text='<b>FWHM [arcsec]</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
-            width=800,
-            height=200,
+            width=self._WIDTH,
+            height=self._HEIGHT,
             margin=self._MARGIN_DICT,
             legend=dict(
                 x=0.01,
@@ -180,7 +201,7 @@ class ChartBuilder:
             )
         )
         fig_fwhm.update_xaxes(
-            range=[hours[0], hours[-1]]
+            range=[weather_hours[0], weather_hours[-1]]
         )
         for _tel, _tel_dat in self._data_fwhm.items():
             fwhm = []
@@ -211,7 +232,7 @@ class ChartBuilder:
                 name=_tel,
                 marker=dict(
                     color=self.hex_to_rgba(hex_color=color, alpha=alpha),
-                    size=5,
+                    size=4,
                     line=dict(
                         color=color,
                         width=0.5
@@ -220,6 +241,146 @@ class ChartBuilder:
             ))
         self._image_fwhm_byte = fig_fwhm.to_image(format="png")
 
+        # quality_qmap
+        fig_quality_qmap = go.Figure()
+        fig_quality_qmap.update_layout(
+            title_text='<b>Quality [%]</b>', title_x=0.5,
+            # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
+            width=self._WIDTH,
+            height=self._HEIGHT,
+            margin=self._MARGIN_DICT,
+            legend=dict(
+                x=0.01,
+                y=0.99,
+                xanchor="left",
+                yanchor="top",
+                bgcolor="rgba(255,255,255,0.6)",
+                borderwidth=0
+            )
+        )
+        fig_quality_qmap.update_xaxes(
+            range=[weather_hours[0], weather_hours[-1]]
+        )
+        for _tel, _tel_dat in self._data_quality_qmap.items():
+            quality_qmap = []
+            hours = []
+
+            try:
+                color = _tel_dat['color']
+            except (LookupError, ValueError, TypeError):
+                color = '#A9A9A9'
+
+            try:
+                quality_qmap_data = _tel_dat['quality_qmap_data']
+            except (LookupError, ValueError, TypeError):
+                quality_qmap_data = []
+            for quality_qmap_point in quality_qmap_data:
+                try:
+                    quality_qmap.append(quality_qmap_point.ratio_no_bkg_1 * 100)
+                    hours.append(quality_qmap_point.date)
+                except (ValueError, TypeError):
+                    pass
+            alpha=0.2
+            if _tel == 'jk15':
+                alpha = 0.5
+            fig_quality_qmap.add_trace(go.Scatter(
+                x=hours,
+                y=quality_qmap,
+                mode="markers",
+                name=_tel,
+                marker=dict(
+                    color=self.hex_to_rgba(hex_color=color, alpha=alpha),
+                    size=4,
+                    line=dict(
+                        color=color,
+                        width=0.5
+                    )
+                )
+            ))
+        self._image_quality_qmap_byte = fig_quality_qmap.to_image(format="png")
+
+
+        # photometric zero
+        fig_phot_zero = go.Figure()
+        fig_phot_zero.update_layout(
+            title_text='<b>Photometric Zero [ADU]</b>', title_x=0.5,
+            # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
+            width=self._WIDTH,
+            height=self._HEIGHT,
+            margin=self._MARGIN_DICT,
+            legend=dict(
+                x=0.01,
+                y=0.99,
+                xanchor="left",
+                yanchor="top",
+                bgcolor="rgba(255,255,255,0.6)",
+                borderwidth=0
+            )
+        )
+        fig_phot_zero.update_xaxes(
+            range=[weather_hours[0], weather_hours[-1]]
+        )
+        filter_color = {'V': 'green', 'B': 'blue', 'Ic': 'red'}
+        # gaussian_filter1d(y_sorted, sigma=6),
+        phot_zero_all = []
+        hours_all = []
+        for _tel, _tel_dat in self._data_phot_zero.items():
+            phot_zero = []
+            hours = []
+            filters = []
+
+            try:
+                color = _tel_dat['color']
+            except (LookupError, ValueError, TypeError):
+                color = '#A9A9A9'
+
+            try:
+                phot_zero_data = _tel_dat['phot_zero_data']
+            except (LookupError, ValueError, TypeError):
+                phot_zero_data = []
+            for phot_zero_point in phot_zero_data:
+                try:
+                    filters.append(filter_color[phot_zero_point.filter_])
+                    phot_zero.append(phot_zero_point.zero_point)
+                    phot_zero_all.append(phot_zero_point.zero_point)
+                    hours.append(phot_zero_point.date)
+                    hours_all.append(phot_zero_point.date)
+                except (ValueError, TypeError):
+                    pass
+            fig_phot_zero.add_trace(go.Scatter(
+                x=hours,
+                y=phot_zero,
+                mode="markers",
+                name=_tel,
+                marker=dict(
+                    color=self.hex_to_rgba(hex_color=color, alpha=0.5),
+                    size=4,
+                    line=dict(
+                        color=filters,
+                        width=0.5
+                    )
+                )
+            ))
+        phot_zero_all = np.asarray(phot_zero_all)
+        hours_all = np.asarray(hours_all)
+        rem_nan_phot_zero_all= ~np.isnan(phot_zero_all)
+        phot_zero_all = phot_zero_all[rem_nan_phot_zero_all]
+        hours_all = hours_all[rem_nan_phot_zero_all]
+        idx = np.argsort(hours_all)
+        phot_zero_all = phot_zero_all[idx]
+        hours_all = hours_all[idx]
+        avr = 3
+        fig_phot_zero.add_trace(go.Scatter(
+            x=hours_all,
+            y=gaussian_filter1d(phot_zero_all, sigma=avr),
+            name=f"{avr}σ avr",
+            mode="lines",
+            line=dict(
+                color='green',
+                width=1
+            )
+        ))
+        self._image_phot_zero_byte = fig_phot_zero.to_image(format="png")
 
         # power
         # {'ts': [2025, 12, 29, 12, 0, 4, 954440], 'version': '3.2.1',
@@ -229,8 +390,8 @@ class ChartBuilder:
         fig_power.update_layout(
             title_text='<b>Power</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
-            width=800,
-            height=200,
+            width=self._WIDTH,
+            height=self._HEIGHT,
             margin=self._MARGIN_DICT,
             legend=dict(
                 x=0.99,
