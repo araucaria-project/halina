@@ -179,6 +179,7 @@ class EmailRapportService(ServiceNatsDependent):
                          .humidity_hart(chart_builder.get__image_humidity_byte())
                          .pressure_hart(chart_builder.get_image_pressure_byte())
                          .fwhm_hart(chart_builder.get_image_fwhm_byte())
+                         .quality_qmap_chart(chart_builder.get_image_quality_qmap_byte())
                          .power_chart(chart_builder.get_image_power_byte())
                          )
 
