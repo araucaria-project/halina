@@ -12,6 +12,7 @@ from halina.date_utils import DateUtils
 from halina.email_rapport.data_collector_classes.data_type_fits import DataTypeFits
 from halina.email_rapport.data_collector_classes.data_object import DataObject
 from halina.email_rapport.data_collector_classes.fwhm_point import FwhmPoint
+from halina.email_rapport.data_collector_classes.quality_qmap_point import QualityQmapPoint
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
@@ -54,6 +55,7 @@ class TelescopeDtaCollector:
         self.malformed_download_count: int = 0
         self.fits_existing_files: Dict[str, int] = {}  # dict witch data to parse to json
         self.fwhm_data: List[FwhmPoint] = []
+        self.quality_qmap_data: List[QualityQmapPoint] = []
 
     @property
     def _fp_lock(self) -> asyncio.Lock:
@@ -226,6 +228,7 @@ class TelescopeDtaCollector:
                 header = content.get("header")
                 try:
                     jd = float(header.get("JD"))
+
                 except (ValueError, TypeError):
                     logger.info(f"The read record from stream {stream} has wrong format: JD")
                     self._count_malformed_fits(main_key)
@@ -235,6 +238,16 @@ class TelescopeDtaCollector:
                 # than 1, it means that the day has passed and there is another night
                 if (jd_today_midday - jd) >= 1:
                     break
+                try:
+                    date_obs = header.get("DATE_OBS")
+                    stars_presence = content.get("stars_presence")
+                    ratio_no_bkg = stars_presence.get("ratio_no_bkg")
+                    ratio_no_bkg_1 = ratio_no_bkg.get("1")
+                    self.quality_qmap_data.append(QualityQmapPoint(
+                        date=datetime.datetime.fromisoformat(date_obs), ratio_no_bkg_1=ratio_no_bkg_1
+                    ))
+                except (LookupError, ValueError, TypeError):
+                    pass
                 async with self._fp_condition:
                     if self._fits_pair.get(fits_id, None) is None:
                         self._fits_pair[fits_id] = {}

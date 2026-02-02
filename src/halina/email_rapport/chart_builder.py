@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 
 from halina.email_rapport.data_collector_classes.fwhm_point import FwhmPoint
 from halina.email_rapport.data_collector_classes.power_point import PowerPoint
+from halina.email_rapport.data_collector_classes.quality_qmap_point import QualityQmapPoint
 from halina.email_rapport.data_collector_classes.weather_point import WeatherPoint
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
@@ -32,9 +33,11 @@ class ChartBuilder:
         self._image_humidity_byte = None
         self._image_pressure_byte = None
         self._image_fwhm_byte = None
+        self._image_quality_qmap_byte = None
         self._image_power_byte = None
         self._timezone_axes = 0
         self._data_fwhm: Dict[str, Dict[str, Union[str, List[FwhmPoint]]]] = {}
+        self._data_quality_qmap: Dict[str, Dict[str, Union[str, List[QualityQmapPoint]]]] = {}
         self._data_power: List[PowerPoint] = []
 
     def get_image_wind_byte(self):
@@ -52,6 +55,9 @@ class ChartBuilder:
     def get_image_fwhm_byte(self):
         return self._image_fwhm_byte
 
+    def get_image_quality_qmap_byte(self):
+        return self._image_quality_qmap_byte
+
     def get_image_power_byte(self):
         return self._image_power_byte
 
@@ -63,6 +69,9 @@ class ChartBuilder:
 
     def set_data_fwhm(self, data_fwhm: Dict[str, Dict[str, Union[str, List[FwhmPoint]]]]) -> None:
         self._data_fwhm = data_fwhm
+
+    def set_data_quality_qmap(self, data_quality_qmap: Dict[str, Dict[str, Union[str, List[QualityQmapPoint]]]]) -> None:
+        self._data_quality_qmap = data_quality_qmap
 
     def data_weather(self, data_weather: List[WeatherPoint]):
         self.set_data_weather(data_weather=data_weather)
@@ -220,6 +229,63 @@ class ChartBuilder:
             ))
         self._image_fwhm_byte = fig_fwhm.to_image(format="png")
 
+        # quality_qmap
+        fig_quality_qmap = go.Figure()
+        fig_quality_qmap.update_layout(
+            title_text='<b>QUALITY [%]</b>', title_x=0.5,
+            # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
+            width=800,
+            height=200,
+            margin=self._MARGIN_DICT,
+            legend=dict(
+                x=0.01,
+                y=0.99,
+                xanchor="left",
+                yanchor="top",
+                bgcolor="rgba(255,255,255,0.6)",
+                borderwidth=0
+            )
+        )
+        fig_quality_qmap.update_xaxes(
+            range=[hours[0], hours[-1]]
+        )
+        for _tel, _tel_dat in self._data_quality_qmap.items():
+            quality_qmap = []
+            hours = []
+
+            try:
+                color = _tel_dat['color']
+            except (LookupError, ValueError, TypeError):
+                color = '#A9A9A9'
+
+            try:
+                quality_qmap_data = _tel_dat['fwhm_data']
+            except (LookupError, ValueError, TypeError):
+                quality_qmap_data = []
+            for quality_qmap_point in quality_qmap_data:
+                try:
+                    quality_qmap.append(quality_qmap_point.ratio_no_bkg_1)
+                    hours.append(quality_qmap_point.date)
+                except (ValueError, TypeError):
+                    pass
+            alpha=0.2
+            if _tel == 'jk15':
+                alpha = 0.5
+            fig_quality_qmap.add_trace(go.Scatter(
+                x=hours,
+                y=quality_qmap,
+                mode="markers",
+                name=_tel,
+                marker=dict(
+                    color=self.hex_to_rgba(hex_color=color, alpha=alpha),
+                    size=5,
+                    line=dict(
+                        color=color,
+                        width=0.5
+                    )
+                )
+            ))
+        self._image_quality_qmap_byte = fig_quality_qmap.to_image(format="png")
 
         # power
         # {'ts': [2025, 12, 29, 12, 0, 4, 954440], 'version': '3.2.1',
