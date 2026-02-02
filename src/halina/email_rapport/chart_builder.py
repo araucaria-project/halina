@@ -259,7 +259,7 @@ class ChartBuilder:
                 color = '#A9A9A9'
 
             try:
-                quality_qmap_data = _tel_dat['fwhm_data']
+                quality_qmap_data = _tel_dat['quality_qmap_data']
             except (LookupError, ValueError, TypeError):
                 quality_qmap_data = []
             for quality_qmap_point in quality_qmap_data:
