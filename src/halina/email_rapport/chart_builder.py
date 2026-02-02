@@ -347,16 +347,13 @@ class ChartBuilder:
                     hours_all.append(phot_zero_point.date)
                 except (ValueError, TypeError):
                     pass
-            alpha=0.2
-            if _tel == 'jk15':
-                alpha = 0.5
             fig_phot_zero.add_trace(go.Scatter(
                 x=hours,
                 y=phot_zero,
                 mode="markers",
                 name=_tel,
                 marker=dict(
-                    color=self.hex_to_rgba(hex_color=color, alpha=alpha),
+                    color=self.hex_to_rgba(hex_color=color, alpha=0.5),
                     size=4,
                     line=dict(
                         color=filters,
