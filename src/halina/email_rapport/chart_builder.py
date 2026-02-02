@@ -372,10 +372,11 @@ class ChartBuilder:
         idx = np.argsort(hours_all)
         phot_zero_all = phot_zero_all[idx]
         hours_all = hours_all[idx]
+        avr = 3
         fig_phot_zero.add_trace(go.Scatter(
             x=hours_all,
-            y=gaussian_filter1d(phot_zero_all, sigma=6),
-            name='name',
+            y=gaussian_filter1d(phot_zero_all, sigma=avr),
+            name=f"{avr}σ avr",
             mode="lines",
             line=dict(
                 color='green',
