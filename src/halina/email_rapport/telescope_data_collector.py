@@ -238,12 +238,13 @@ class TelescopeDtaCollector:
                 # than 1, it means that the day has passed and there is another night
                 if (jd_today_midday - jd) >= 1:
                     break
+                logger.info(header.get("DATE-OBS"))
+                logger.info(content.get("stars_presence"))
                 try:
                     date_obs = header.get("DATE-OBS")
                     stars_presence = content.get("stars_presence")
                     ratio_no_bkg = stars_presence.get("ratio_no_bkg")
                     ratio_no_bkg_1 = ratio_no_bkg.get("1")
-                    logger.info(stars_presence)
                     self.quality_qmap_data.append(QualityQmapPoint(
                         date=datetime.datetime.fromisoformat(date_obs), ratio_no_bkg_1=ratio_no_bkg_1
                     ))
