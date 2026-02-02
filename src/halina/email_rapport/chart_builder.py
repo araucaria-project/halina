@@ -369,7 +369,7 @@ class ChartBuilder:
         rem_nan_phot_zero_all= ~np.isnan(phot_zero_all)
         phot_zero_all = phot_zero_all[rem_nan_phot_zero_all]
         hours_all = hours_all[rem_nan_phot_zero_all]
-        idx = np.argsort(phot_zero_all)
+        idx = np.argsort(hours_all)
         phot_zero_all = phot_zero_all[idx]
         hours_all = hours_all[idx]
         fig_phot_zero.add_trace(go.Scatter(
