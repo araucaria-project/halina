@@ -220,7 +220,6 @@ class TelescopeDtaCollector:
                 except asyncio.TimeoutError:
                     logger.info(f"Stop waiting for new date in stream - stream is empty. {stream}")
                     break
-                logger.info(data)
                 try:
                     jd: float = get_jd_from_oca_jd(oca_jd=data['oca_jd'])
                     zero_point: float = data['zero_value']
@@ -246,6 +245,7 @@ class TelescopeDtaCollector:
             async with self._fp_condition:
                 self._fp_condition.notify_all()
             await reader.close()
+            logger.info(self.phot_zero_data)
 
     async def _read_data_from_stream(self, stream: str, main_key: str):
         yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
