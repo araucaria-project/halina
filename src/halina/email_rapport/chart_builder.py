@@ -232,7 +232,7 @@ class ChartBuilder:
         # quality_qmap
         fig_quality_qmap = go.Figure()
         fig_quality_qmap.update_layout(
-            title_text='<b>QUALITY [%]</b>', title_x=0.5,
+            title_text='<b>Quality [%]</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
             width=800,
             height=200,
