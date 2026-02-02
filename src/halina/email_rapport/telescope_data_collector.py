@@ -227,8 +227,17 @@ class TelescopeDtaCollector:
                 content = data.get(main_key)
                 header = content.get("header")
                 try:
+                    date_obs = header.get("DATE-OBS")
+                    stars_presence = content.get("stars_presence")
+                    ratio_no_bkg = stars_presence.get("ratio_no_bkg")
+                    ratio_no_bkg_1 = ratio_no_bkg.get("1")
+                    self.quality_qmap_data.append(QualityQmapPoint(
+                        date=datetime.datetime.fromisoformat(date_obs), ratio_no_bkg_1=ratio_no_bkg_1
+                    ))
+                except (LookupError, ValueError, TypeError):
+                    pass
+                try:
                     jd = float(header.get("JD"))
-
                 except (ValueError, TypeError):
                     logger.info(f"The read record from stream {stream} has wrong format: JD")
                     self._count_malformed_fits(main_key)
