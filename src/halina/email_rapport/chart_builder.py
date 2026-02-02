@@ -18,7 +18,7 @@ class ChartBuilder:
     _WIND_AREA1 = 11  # wind speed yellow area
     _MARGIN_DICT = dict(l=40, r=20, t=28, b=35)
     _HEIGHT = 200
-    _WIDTH = 800
+    _WIDTH = 700
     _POWER = {
         'state_of_charge': {'color': '#0000FF', 'name': 'Battery [%]'},
         'solar_power': {'color': '#FFA500', 'name': 'Solar [W]'},
@@ -121,8 +121,8 @@ class ChartBuilder:
         fig_wind.update_layout(
             title_text='<b>Wind [m/s]</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
-            width=700,
-            height=200,
+            width=self._WIDTH,
+            height=self._HEIGHT,
             margin=self._MARGIN_DICT
         )
         fig_wind.add_trace(go.Scatter(x=weather_hours, y=winds))
@@ -138,8 +138,8 @@ class ChartBuilder:
         fig_temperature.update_layout(
             title_text='<b>Temperature [C]</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
-            width=700,
-            height=200,
+            width=self._WIDTH,
+            height=self._HEIGHT,
             margin=self._MARGIN_DICT
             )
         fig_temperature.add_trace(go.Scatter(x=weather_hours, y=temperatures))
@@ -151,8 +151,8 @@ class ChartBuilder:
         fig_humidity.update_layout(
             title_text='<b>Humidity [%]</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
-            width=700,
-            height=200,
+            width=self._WIDTH,
+            height=self._HEIGHT,
             margin=self._MARGIN_DICT
             )
         fig_humidity.add_trace(go.Scatter(x=weather_hours, y=humiditys))
@@ -164,8 +164,8 @@ class ChartBuilder:
         fig_pressure.update_layout(
             title_text='<b>Pressure [hPa]</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
-            width=800,
-            height=200,
+            width=self._WIDTH,
+            height=self._HEIGHT,
             margin=self._MARGIN_DICT
             )
         fig_pressure.add_trace(go.Scatter(x=weather_hours, y=pressures))
@@ -176,8 +176,8 @@ class ChartBuilder:
         fig_fwhm.update_layout(
             title_text='<b>FWHM [arcsec]</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
-            width=700,
-            height=200,
+            width=self._WIDTH,
+            height=self._HEIGHT,
             margin=self._MARGIN_DICT,
             legend=dict(
                 x=0.01,
@@ -234,8 +234,8 @@ class ChartBuilder:
         fig_quality_qmap.update_layout(
             title_text='<b>Quality [%]</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
-            width=700,
-            height=200,
+            width=self._WIDTH,
+            height=self._HEIGHT,
             margin=self._MARGIN_DICT,
             legend=dict(
                 x=0.01,
@@ -295,8 +295,8 @@ class ChartBuilder:
         fig_power.update_layout(
             title_text='<b>Power</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
-            width=700,
-            height=200,
+            width=self._WIDTH,
+            height=self._HEIGHT,
             margin=self._MARGIN_DICT,
             legend=dict(
                 x=0.99,
