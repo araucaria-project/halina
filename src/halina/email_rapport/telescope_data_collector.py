@@ -236,7 +236,8 @@ class TelescopeDtaCollector:
                     break
                 try:
                     self.phot_zero_data.append(PhotZeroPoint(
-                        date=datetime.datetime.fromisoformat(date_obs), zero_point=zero_point, filter_=filter_
+                        date=datetime.datetime.fromisoformat(date_obs).replace(tzinfo=datetime.timezone.utc),
+                        zero_point=zero_point, filter_=filter_
                     ))
                 except (ValueError, TypeError):
                     continue
