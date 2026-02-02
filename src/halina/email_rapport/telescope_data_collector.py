@@ -208,6 +208,7 @@ class TelescopeDtaCollector:
             await reader.close()
 
     async def _read_data_from_zero_monitor(self):
+        logger.info(f'Get zero monitor data for {self._telescope_name}')
         stream = self._get_zero_monitor_stream()
         yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
         today_midday = DateUtils.today_local_midday_in_utc()
@@ -246,6 +247,7 @@ class TelescopeDtaCollector:
             async with self._fp_condition:
                 self._fp_condition.notify_all()
             await reader.close()
+            logger.info(f'Zero monitor data for {self._telescope_name} has records no.: {len(self.phot_zero_data)}')
 
     async def _read_data_from_stream(self, stream: str, main_key: str):
         yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
