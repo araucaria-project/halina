@@ -319,6 +319,7 @@ class ChartBuilder:
         )
         filter_color = {'V': 'green', 'B': 'blue', 'Ic': 'red'}
         # gaussian_filter1d(y_sorted, sigma=6),
+        logger.info(self._data_phot_zero)
         for _tel, _tel_dat in self._data_phot_zero.items():
             phot_zero = []
             hours = []
