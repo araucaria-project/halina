@@ -239,7 +239,7 @@ class TelescopeDtaCollector:
                 if (jd_today_midday - jd) >= 1:
                     break
                 try:
-                    date_obs = header.get("DATE_OBS")
+                    date_obs = header.get("DATE-OBS")
                     stars_presence = content.get("stars_presence")
                     ratio_no_bkg = stars_presence.get("ratio_no_bkg")
                     ratio_no_bkg_1 = ratio_no_bkg.get("1")
