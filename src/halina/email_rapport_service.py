@@ -164,6 +164,7 @@ class EmailRapportService(ServiceNatsDependent):
         chart_builder = ChartBuilder()
         chart_builder.set_data_weather(weather_data_coll.data_weather)
         chart_builder.set_data_fwhm(fwhm_data)
+        logger.info(quality_qmap_data)
         chart_builder.set_data_quality_qmap(quality_qmap_data)
         chart_builder.set_data_power(power_data_coll.data_points)
         await chart_builder.build()
