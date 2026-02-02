@@ -303,7 +303,7 @@ class ChartBuilder:
         # photometric zero
         fig_phot_zero = go.Figure()
         fig_phot_zero.update_layout(
-            title_text='<b>Photometric Zero [ADU]</b>', title_x=0.5,
+            title_text='<b>Photometric Zero [mag]</b>', title_x=0.5,
             # xaxis_title=f"<b>UTC{'+' if tim_ax >= 0 else ''}{tim_ax}</b>",
             width=self._WIDTH,
             height=self._HEIGHT,
@@ -373,11 +373,11 @@ class ChartBuilder:
         fig_phot_zero.add_trace(go.Scatter(
             x=hours_all,
             y=gaussian_filter1d(phot_zero_all, sigma=avr),
-            name=f"{avr}σ avr",
+            name=f"{avr}σ avg.",
             mode="lines",
             line=dict(
                 color='green',
-                width=1
+                width=0.5
             )
         ))
         self._image_phot_zero_byte = fig_phot_zero.to_image(format="png")
