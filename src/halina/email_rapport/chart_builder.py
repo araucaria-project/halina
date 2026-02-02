@@ -2,7 +2,10 @@ import asyncio
 import datetime
 import logging
 from typing import List, Dict, Union
+
+import numpy as np
 import plotly.graph_objects as go
+from scipy.ndimage import gaussian_filter1d
 
 from halina.email_rapport.data_collector_classes.fwhm_point import FwhmPoint
 from halina.email_rapport.data_collector_classes.phot_zero_point import PhotZeroPoint
@@ -319,6 +322,8 @@ class ChartBuilder:
         )
         filter_color = {'V': 'green', 'B': 'blue', 'Ic': 'red'}
         # gaussian_filter1d(y_sorted, sigma=6),
+        phot_zero_all = []
+        hours_all = []
         for _tel, _tel_dat in self._data_phot_zero.items():
             phot_zero = []
             hours = []
@@ -337,7 +342,9 @@ class ChartBuilder:
                 try:
                     filters.append(phot_zero_point.filter_)
                     phot_zero.append(phot_zero_point.zero_point)
+                    phot_zero_all.append(phot_zero_point.zero_point)
                     hours.append(phot_zero_point.date)
+                    hours_all.append(phot_zero_point.date)
                 except (ValueError, TypeError):
                     pass
             alpha=0.2
@@ -357,6 +364,24 @@ class ChartBuilder:
                     )
                 )
             ))
+        phot_zero_all = np.asarray(phot_zero_all)
+        hours_all = np.asarray(hours_all)
+        rem_nan_phot_zero_all= ~np.isnan(phot_zero_all)
+        phot_zero_all = phot_zero_all[rem_nan_phot_zero_all]
+        hours_all = hours_all[rem_nan_phot_zero_all]
+        idx = np.argsort(phot_zero_all)
+        phot_zero_all = phot_zero_all[idx]
+        hours_all = hours_all[idx]
+        fig_phot_zero.add_trace(go.Scatter(
+            x=hours_all,
+            y=gaussian_filter1d(phot_zero_all, sigma=6),
+            name='name',
+            mode="lines",
+            line=dict(
+                color='green',
+                width=1
+            )
+        ))
         self._image_phot_zero_byte = fig_phot_zero.to_image(format="png")
 
         # power
