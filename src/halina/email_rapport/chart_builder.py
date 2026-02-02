@@ -220,7 +220,7 @@ class ChartBuilder:
                 name=_tel,
                 marker=dict(
                     color=self.hex_to_rgba(hex_color=color, alpha=alpha),
-                    size=5,
+                    size=4,
                     line=dict(
                         color=color,
                         width=0.5
@@ -264,7 +264,7 @@ class ChartBuilder:
                 quality_qmap_data = []
             for quality_qmap_point in quality_qmap_data:
                 try:
-                    quality_qmap.append(quality_qmap_point.ratio_no_bkg_1)
+                    quality_qmap.append(quality_qmap_point.ratio_no_bkg_1 * 100)
                     hours.append(quality_qmap_point.date)
                 except (ValueError, TypeError):
                     pass
@@ -278,7 +278,7 @@ class ChartBuilder:
                 name=_tel,
                 marker=dict(
                     color=self.hex_to_rgba(hex_color=color, alpha=alpha),
-                    size=3,
+                    size=4,
                     line=dict(
                         color=color,
                         width=0.5
