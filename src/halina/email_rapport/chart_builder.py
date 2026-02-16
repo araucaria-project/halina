@@ -376,7 +376,7 @@ class ChartBuilder:
             name=f"{avr}σ avg.",
             mode="lines",
             line=dict(
-                color='green',
+                color='orange',
                 width=0.5
             )
         ))
