@@ -208,11 +208,13 @@ class TelescopeDtaCollector:
             await reader.close()
 
     async def _read_data_from_zero_monitor(self):
-        logger.info(f'Get zero monitor data for {self._telescope_name}')
+
         stream = self._get_zero_monitor_stream()
         yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
         today_midday = DateUtils.today_local_midday_in_utc()
+        logger.info(f'Get zero monitor data for {self._telescope_name} start from {yesterday_midday}')
         reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
+
         try:
             await reader.open()
             while True:

@@ -325,6 +325,7 @@ class ChartBuilder:
         phot_zero_all = []
         hours_all = []
         for _tel, _tel_dat in self._data_phot_zero.items():
+            logger.info(f"For {_tel} chart has {len(_tel_dat)} points")
             phot_zero = []
             hours = []
             filters = []
