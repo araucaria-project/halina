@@ -238,9 +238,12 @@ class TelescopeDtaCollector:
                 # if (jd_today_midday - jd) >= 1:
                 #     logger.info(f"Data read brake jd_today_midday {jd_today_midday} - jd {jd}")
                 #     break
+                obs_dt = datetime.datetime.fromisoformat(date_obs).astimezone(tz=datetime.timezone.utc)
+                if obs_dt < yesterday_midday:
+                    continue
                 try:
                     self.phot_zero_data.append(PhotZeroPoint(
-                        date=datetime.datetime.fromisoformat(date_obs).astimezone(tz=datetime.timezone.utc),
+                        date=obs_dt,
                         zero_point=zero_point, filter_=filter_
                     ))
                 except (ValueError, TypeError):
