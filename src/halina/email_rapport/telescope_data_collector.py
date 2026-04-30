@@ -210,8 +210,8 @@ class TelescopeDtaCollector:
     async def _read_data_from_zero_monitor(self):
 
         stream = self._get_zero_monitor_stream()
-        yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
-        today_midday = DateUtils.today_local_midday_in_utc()
+        yesterday_midday = DateUtils.yesterday_local_midday_in_utc().astimezone(tz=datetime.timezone.utc)
+        today_midday = DateUtils.today_local_midday_in_utc().astimezone(tz=datetime.timezone.utc)
         logger.info(f'Get zero monitor data for {self._telescope_name} start from {yesterday_midday}')
         reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
 
@@ -236,6 +236,7 @@ class TelescopeDtaCollector:
                 # if the difference between the beginning of the observation and the date of observation is greater
                 # than 1, it means that the day has passed and there is another night
                 if (jd_today_midday - jd) >= 1:
+                    logger.info(f"Data read brake jd_today_midday {jd_today_midday} - jd {jd}")
                     break
                 try:
                     self.phot_zero_data.append(PhotZeroPoint(

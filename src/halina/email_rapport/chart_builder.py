@@ -325,7 +325,7 @@ class ChartBuilder:
         phot_zero_all = []
         hours_all = []
         for _tel, _tel_dat in self._data_phot_zero.items():
-            logger.info(f"For {_tel} chart has {len(_tel_dat)} points")
+
             phot_zero = []
             hours = []
             filters = []
@@ -337,6 +337,7 @@ class ChartBuilder:
 
             try:
                 phot_zero_data = _tel_dat['phot_zero_data']
+                logger.info(f"For {_tel} chart has {len(phot_zero_data)} points")
             except (LookupError, ValueError, TypeError):
                 phot_zero_data = []
             for phot_zero_point in phot_zero_data:
