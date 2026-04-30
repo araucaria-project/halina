@@ -320,7 +320,7 @@ class ChartBuilder:
         fig_phot_zero.update_xaxes(
             range=[weather_hours[0], weather_hours[-1]]
         )
-        filter_color = {'V': 'green', 'B': 'blue', 'Ic': 'red', 'g': 'gray', 'r': 'orange', 'i': 'black'}
+        filter_color = {'V': 'green', 'B': 'blue', 'Ic': 'red', 'g': 'lightgreen', 'r': 'orange', 'i': 'brown'}
         # gaussian_filter1d(y_sorted, sigma=6),
         phot_zero_all = []
         hours_all = []
@@ -337,7 +337,7 @@ class ChartBuilder:
 
             try:
                 phot_zero_data = _tel_dat['phot_zero_data']
-                logger.info(f"For {_tel} chart has {len(phot_zero_data)} points")
+                logger.info(f"For {_tel} zero monitor chart has {len(phot_zero_data)} points")
             except (LookupError, ValueError, TypeError):
                 phot_zero_data = []
             for phot_zero_point in phot_zero_data:
@@ -379,7 +379,7 @@ class ChartBuilder:
             mode="lines",
             line=dict(
                 color='orange',
-                width=0.5
+                width=2
             )
         ))
         self._image_phot_zero_byte = fig_phot_zero.to_image(format="png")
