@@ -208,11 +208,13 @@ class TelescopeDtaCollector:
             await reader.close()
 
     async def _read_data_from_zero_monitor(self):
-        logger.info(f'Get zero monitor data for {self._telescope_name}')
+
         stream = self._get_zero_monitor_stream()
-        yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
-        today_midday = DateUtils.today_local_midday_in_utc()
+        yesterday_midday = DateUtils.yesterday_local_midday_in_utc().replace(tzinfo=datetime.timezone.utc)
+        today_midday = DateUtils.today_local_midday_in_utc().replace(tzinfo=datetime.timezone.utc)
+        logger.info(f'Get zero monitor data for {self._telescope_name} start from {yesterday_midday}')
         reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
+
         try:
             await reader.open()
             while True:
@@ -230,14 +232,18 @@ class TelescopeDtaCollector:
                     continue
                 # if not image_typ == 'science':
                 #     continue
-                jd_today_midday = datetime_to_julian(today_midday)
-                # if the difference between the beginning of the observation and the date of observation is greater
-                # than 1, it means that the day has passed and there is another night
-                if (jd_today_midday - jd) >= 1:
-                    break
+                # jd_today_midday = datetime_to_julian(today_midday)
+                # # if the difference between the beginning of the observation and the date of observation is greater
+                # # than 1, it means that the day has passed and there is another night
+                # if (jd_today_midday - jd) >= 1:
+                #     logger.info(f"Data read brake jd_today_midday {jd_today_midday} - jd {jd}")
+                #     break
+                obs_dt = datetime.datetime.fromisoformat(date_obs).astimezone(tz=datetime.timezone.utc)
+                if obs_dt < yesterday_midday:
+                    continue
                 try:
                     self.phot_zero_data.append(PhotZeroPoint(
-                        date=datetime.datetime.fromisoformat(date_obs).replace(tzinfo=datetime.timezone.utc),
+                        date=obs_dt,
                         zero_point=zero_point, filter_=filter_
                     ))
                 except (ValueError, TypeError):
