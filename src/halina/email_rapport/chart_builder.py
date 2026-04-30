@@ -320,7 +320,7 @@ class ChartBuilder:
         fig_phot_zero.update_xaxes(
             range=[weather_hours[0], weather_hours[-1]]
         )
-        filter_color = {'V': 'green', 'B': 'blue', 'Ic': 'red', 'g': 'limegreen', 'r': 'firebrick', 'i': 'darkred'}
+        filter_color = {'V': 'green', 'B': 'blue', 'Ic': 'red', 'g': 'gray', 'r': 'orange', 'i': 'black'}
         # gaussian_filter1d(y_sorted, sigma=6),
         phot_zero_all = []
         hours_all = []
