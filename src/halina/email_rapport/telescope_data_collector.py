@@ -210,8 +210,8 @@ class TelescopeDtaCollector:
     async def _read_data_from_zero_monitor(self):
 
         stream = self._get_zero_monitor_stream()
-        yesterday_midday = DateUtils.yesterday_local_midday_in_utc().astimezone(tz=datetime.timezone.utc)
-        today_midday = DateUtils.today_local_midday_in_utc().astimezone(tz=datetime.timezone.utc)
+        yesterday_midday = DateUtils.yesterday_local_midday_in_utc().replace(tzinfo=datetime.timezone.utc)
+        today_midday = DateUtils.today_local_midday_in_utc().replace(tzinfo=datetime.timezone.utc)
         logger.info(f'Get zero monitor data for {self._telescope_name} start from {yesterday_midday}')
         reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
 
