@@ -121,7 +121,7 @@ class ChartBuilder:
             pressures.append(dat.pressure)
 
         stop = datetime.datetime.now(datetime.timezone.utc)
-        logger.info(f"preparing data for plots completed. Proces takes: {(stop - start).total_seconds()}")
+        logger.info(f"preparing data for plots completed. Process takes: {(stop - start).total_seconds()}")
         start = datetime.datetime.now(datetime.timezone.utc)
         if max_wind > ChartBuilder._WIND_AREA2:
             wind_red_area_top = max_wind + ChartBuilder._SCALE_MARGIN
@@ -170,6 +170,7 @@ class ChartBuilder:
         fig_humidity.add_trace(go.Scatter(x=weather_hours, y=humiditys))
         self._image_humidity_byte = fig_humidity.to_image(format="png")
         await asyncio.sleep(0)
+        logger.info(f"Chart humidity done")
 
         # pressure
         fig_pressure = go.Figure()
@@ -182,6 +183,7 @@ class ChartBuilder:
             )
         fig_pressure.add_trace(go.Scatter(x=weather_hours, y=pressures))
         self._image_pressure_byte = fig_pressure.to_image(format="png")
+        logger.info(f"Chart pressure done")
 
         # fwhm
         fig_fwhm = go.Figure()
@@ -240,6 +242,7 @@ class ChartBuilder:
                 )
             ))
         self._image_fwhm_byte = fig_fwhm.to_image(format="png")
+        logger.info(f"Chart fwhm done")
 
         # quality_qmap
         fig_quality_qmap = go.Figure()
@@ -298,7 +301,7 @@ class ChartBuilder:
                 )
             ))
         self._image_quality_qmap_byte = fig_quality_qmap.to_image(format="png")
-
+        logger.info(f"Chart quality done")
 
         # photometric zero
         fig_phot_zero = go.Figure()
@@ -383,6 +386,7 @@ class ChartBuilder:
             )
         ))
         self._image_phot_zero_byte = fig_phot_zero.to_image(format="png")
+        logger.info(f"Chart photometric zero done")
 
         # power
         # {'ts': [2025, 12, 29, 12, 0, 4, 954440], 'version': '3.2.1',
@@ -476,6 +480,7 @@ class ChartBuilder:
             ),
         )
         self._image_power_byte = fig_power.to_image(format="png")
+        logger.info(f"Chart power done")
 
         stop = datetime.datetime.now(datetime.timezone.utc)
         logger.info(f"Plots was created. Proces takes: {(stop - start).total_seconds()}")
