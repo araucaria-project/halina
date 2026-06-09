@@ -251,7 +251,7 @@ class EmailBuilder:
                 if record is None:
                     continue
                 else:
-                    records_text += f"\n{record.date.isoformat().split(".")[0]} {record.level_name:10} {record.message}"
+                    records_text += f"\n{record.date.isoformat().split('.')[0]} {record.level_name:10} {record.message}"
         else:
             raise NotImplementedError
 
