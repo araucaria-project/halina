@@ -132,6 +132,7 @@ class EmailRapportService(ServiceNatsDependent):
         fwhm_data: Dict[str, Dict[str, Union[str, List[FwhmPoint]]]] = {}
         quality_qmap_data: Dict[str, Dict[str, Union[str, List[QualityQmapPoint]]]] = {}
         phot_zero_data: Dict[str, Dict[str, Union[str, List[PhotZeroPoint]]]] = {}
+        _data_files: Dict[str, List] = {}
 
         for tel in self._telescopes:
             telescope_info = {
@@ -152,6 +153,7 @@ class EmailRapportService(ServiceNatsDependent):
             phot_zero_data[tel] = {
                 'color': telescopes[tel].color, 'phot_zero_data': telescopes[tel].phot_zero_data
             }
+            _data_files[f"{tel}_quality_msg.txt"] = telescopes[tel].quality_log_data
 
         # Build and send email
         night = self._format_night()
@@ -188,6 +190,7 @@ class EmailRapportService(ServiceNatsDependent):
                          .quality_qmap_chart(chart_builder.get_image_quality_qmap_byte())
                          .phot_zero_chart(chart_builder.get_image_phot_zero_byte())
                          .power_chart(chart_builder.get_image_power_byte())
+                         .data_files(_data_files)
                          )
 
         email_message = await email_builder.build()
