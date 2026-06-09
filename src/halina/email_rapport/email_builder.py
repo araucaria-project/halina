@@ -5,7 +5,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import os
 import aiofiles
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 from definitions import RESOURCES_DIR
 from halina.email_rapport.data_collector_classes.data_object import DataObject
 
@@ -34,6 +34,7 @@ class EmailBuilder:
         self._power_chart = None
         self._quality_qmap_chart = None
         self._phot_zero_chart = None
+        self._data_files = None
 
     def set_subject(self, subject: str) -> None:
         self._subject = subject
@@ -128,6 +129,13 @@ class EmailBuilder:
         self.set_power_chart(chart)
         return self
 
+    def set_data_files(self, data_files: Dict[str, Union[Dict, List]]):
+        self._data_files = data_files
+
+    def data_files(self, data_files: Dict[str, Union[Dict, List]]):
+        self.set_data_files(data_files)
+        return self
+
     async def build(self) -> MIMEMultipart:
         logger.info("Building the email.")
         env = Environment(loader=FileSystemLoader(RESOURCES_DIR))
@@ -194,6 +202,15 @@ class EmailBuilder:
         await EmailBuilder._add_logo_to_message(message=message, filename=EmailBuilder._FILENAME_LOGO_OCM,
                                                 template_name="logo_ocm")
 
+        # Attach files data
+        if self._data_files is not None:
+            for file_name, file_data in self._data_files:
+                await EmailBuilder._add_file_to_message(
+                    message=message,
+                    file_data=file_data,
+                    file_name=file_name,
+                )
+
         return message
 
     @staticmethod
@@ -219,3 +236,21 @@ class EmailBuilder:
         chart_image.add_header('Content-ID', f'{chart_name}')
         chart_image.add_header('Content-Disposition', 'inline', filename=f"{chart_name}.png")
         message.attach(chart_image)
+
+    @staticmethod
+    async def _add_file_to_message(message: MIMEMultipart, file_data: Union[Dict, List], file_name: str):
+        if file_data is None:
+            logger.warning(f"File content is None. File name: {file_name}")
+            return
+
+        if isinstance(file_data, list):
+            records_text = "\n".join(
+                str(x) if x is not None else "NULL"
+                for x in file_data
+            )
+        else:
+            raise NotImplementedError
+
+        part = MIMEText(records_text, "plain", "utf-8")
+        part.add_header("Content-Disposition", "attachment", filename=file_name)
+        message.attach(part)
