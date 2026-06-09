@@ -204,7 +204,7 @@ class EmailBuilder:
 
         # Attach files data
         if self._data_files is not None:
-            for file_name, file_data in self._data_files:
+            for file_name, file_data in self._data_files.items():
                 await EmailBuilder._add_file_to_message(
                     message=message,
                     file_data=file_data,
