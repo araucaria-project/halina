@@ -4,7 +4,7 @@ import logging
 from typing import Dict, Optional, List
 
 from pyaraucaria.date import datetime_to_julian, get_jd_from_oca_jd, julian_to_iso
-from serverish.base import MessengerReaderStopped
+from serverish.base import MessengerReaderStopped, dt_from_array
 from serverish.messenger import get_reader, single_read
 
 from halina.asyncio_util_functions import wait_for_psce
@@ -12,6 +12,7 @@ from halina.date_utils import DateUtils
 from halina.email_rapport.data_collector_classes.data_type_fits import DataTypeFits
 from halina.email_rapport.data_collector_classes.data_object import DataObject
 from halina.email_rapport.data_collector_classes.fwhm_point import FwhmPoint
+from halina.email_rapport.data_collector_classes.quality_log_msg import QualityLogMsg
 from halina.email_rapport.data_collector_classes.quality_qmap_point import QualityQmapPoint
 from halina.email_rapport.data_collector_classes.phot_zero_point import PhotZeroPoint
 
@@ -33,6 +34,7 @@ class TelescopeDtaCollector:
         self._download_stream: str = f"tic.status.{self._telescope_name}.download"
         self._faststat_stream: str = f"tic.status.{self._telescope_name}.fits.pipeline.faststat"
         self._zero_monitor_stream: str = f"tic.status.{self._telescope_name}.zero_monitor.lc"
+        self._quality_log_stream: str = f"tic.journal.{self._telescope_name}.quality"
         self._telescope_settings_stream: str = f"tic.config.observatory"
 
         # {fits_id: dict(raw: raw_fits, zdf: zdf_fits)}
@@ -59,6 +61,7 @@ class TelescopeDtaCollector:
         self.fwhm_data: List[FwhmPoint] = []
         self.quality_qmap_data: List[QualityQmapPoint] = []
         self.phot_zero_data: List[PhotZeroPoint] = []
+        self.quality_log_data: List[QualityLogMsg] = []
 
     @property
     def _fp_lock(self) -> asyncio.Lock:
@@ -86,6 +89,9 @@ class TelescopeDtaCollector:
 
     def _get_zero_monitor_stream(self) -> str:
         return self._zero_monitor_stream
+
+    def _get_quality_log_stream(self) -> str:
+        return self._quality_log_stream
 
     def _count_malformed_fits(self, main_key: str):
         if main_key == TelescopeDtaCollector._STR_NAME_RAW:
@@ -255,6 +261,46 @@ class TelescopeDtaCollector:
             await reader.close()
             logger.info(f'Zero monitor data for {self._telescope_name} has records no.: {len(self.phot_zero_data)}')
 
+    async def _read_data_from_quality_log(self):
+
+        stream = self._get_quality_log_stream()
+        yesterday_midday = DateUtils.yesterday_local_midday_in_utc().replace(tzinfo=datetime.timezone.utc)
+        today_midday = DateUtils.today_local_midday_in_utc().replace(tzinfo=datetime.timezone.utc)
+        logger.info(f'Get quality log data for {self._telescope_name} start from {yesterday_midday}')
+        reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
+
+        try:
+            await reader.open()
+            while True:
+                try:
+                    data, meta = await wait_for_psce(reader.read_next(), 2)
+                except asyncio.TimeoutError:
+                    logger.info(f"Stop waiting for new date in stream - stream is empty. {stream}")
+                    break
+                try:
+                    date: datetime.datetime = dt_from_array(data['timestamp'])
+                    message: str = data['message']
+                    level: int = data['level']
+                except (ValueError, TypeError, LookupError):
+                    continue
+                obs_dt = date.astimezone(tz=datetime.timezone.utc)
+                if obs_dt < yesterday_midday:
+                    continue
+                try:
+                    self.quality_log_data.append(QualityLogMsg(
+                        date=date,
+                        message=message,
+                        level=level
+                    ))
+                except (ValueError, TypeError):
+                    continue
+        finally:
+            self._finish_reading_streams += 1
+            async with self._fp_condition:
+                self._fp_condition.notify_all()
+            await reader.close()
+            logger.info(f'Quality log data for {self._telescope_name} has records no.: {len(self.quality_log_data)}')
+
     async def _read_data_from_stream(self, stream: str, main_key: str):
         yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
         today_midday = DateUtils.today_local_midday_in_utc()
@@ -358,6 +404,7 @@ class TelescopeDtaCollector:
         coros = [self._read_data_from_download(),
                  self._read_data_from_faststat(),
                  self._read_data_from_zero_monitor(),
+                 self._read_data_from_quality_log(),
                  self._read_data_from_stream(self._get_raw_stream(), TelescopeDtaCollector._STR_NAME_RAW),
                  self._read_data_from_stream(self._get_zdf_stream(), TelescopeDtaCollector._STR_NAME_ZDF),
                  self._evaluate_data(),

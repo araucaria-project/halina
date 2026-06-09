@@ -5,9 +5,10 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import os
 import aiofiles
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, Union, Optional
 from definitions import RESOURCES_DIR
 from halina.email_rapport.data_collector_classes.data_object import DataObject
+from halina.email_rapport.data_collector_classes.quality_log_msg import QualityLogMsg
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
@@ -238,26 +239,23 @@ class EmailBuilder:
         message.attach(chart_image)
 
     @staticmethod
-    async def _add_file_to_message(message: MIMEMultipart, file_data: Union[Dict, List], file_name: str):
-        logger.info(f"Starting to create {file_name} 1")
+    async def _add_file_to_message(message: MIMEMultipart, file_data: Union[Dict, List[QualityLogMsg]], file_name: str):
+        logger.info(f"Starting to create file {file_name}")
         if file_data is None:
             logger.warning(f"File content is None. File name: {file_name}")
             return
-        logger.info(f"Starting to create {file_name} 2")
+
         if isinstance(file_data, list):
-            records_text = "\n".join(
-                str(x) if x is not None else "NULL"
-                for x in file_data
-            )
+            records_text = ""
+            for record in file_data:
+                if record is None:
+                    continue
+                else:
+                    records_text += f"\n{record.date.isoformat()} {record.level_name} {record.message}"
         else:
             raise NotImplementedError
-        logger.info(f"Starting to create {file_name} 3")
-        records_text = "AAA\nBBB"
 
         part = MIMEText(records_text, "plain", "utf-8")
-        logger.info(f"Starting to create {file_name} 4")
         part.add_header("Content-Disposition", "attachment", filename=file_name)
-        logger.info(f"Starting to create {file_name} 5")
         message.attach(part)
-        logger.info(f"Starting to create {file_name} 6")
-        logger.debug(f"File {file_name} attached to email.")
+        logger.info(f"File {file_name} attached to email.")

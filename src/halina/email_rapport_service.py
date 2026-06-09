@@ -153,7 +153,7 @@ class EmailRapportService(ServiceNatsDependent):
             phot_zero_data[tel] = {
                 'color': telescopes[tel].color, 'phot_zero_data': telescopes[tel].phot_zero_data
             }
-            _data_files[f"{tel}_quality_msg.txt"] = []
+            _data_files[f"{tel}_quality_msg.txt"] = telescopes[tel].quality_log_data
 
         # Build and send email
         night = self._format_night()
