@@ -251,6 +251,9 @@ class EmailBuilder:
         else:
             raise NotImplementedError
 
+        records_text = "AAA\nBBB"
+
         part = MIMEText(records_text, "plain", "utf-8")
         part.add_header("Content-Disposition", "attachment", filename=file_name)
         message.attach(part)
+        logger.debug(f"File {file_name} attached to email.")
