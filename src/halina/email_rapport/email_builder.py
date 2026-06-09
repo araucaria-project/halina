@@ -239,10 +239,11 @@ class EmailBuilder:
 
     @staticmethod
     async def _add_file_to_message(message: MIMEMultipart, file_data: Union[Dict, List], file_name: str):
+        logger.info(f"Starting to create {file_name} 1")
         if file_data is None:
             logger.warning(f"File content is None. File name: {file_name}")
             return
-
+        logger.info(f"Starting to create {file_name} 2")
         if isinstance(file_data, list):
             records_text = "\n".join(
                 str(x) if x is not None else "NULL"
@@ -250,10 +251,13 @@ class EmailBuilder:
             )
         else:
             raise NotImplementedError
-
+        logger.info(f"Starting to create {file_name} 3")
         records_text = "AAA\nBBB"
 
         part = MIMEText(records_text, "plain", "utf-8")
+        logger.info(f"Starting to create {file_name} 4")
         part.add_header("Content-Disposition", "attachment", filename=file_name)
+        logger.info(f"Starting to create {file_name} 5")
         message.attach(part)
+        logger.info(f"Starting to create {file_name} 6")
         logger.debug(f"File {file_name} attached to email.")
