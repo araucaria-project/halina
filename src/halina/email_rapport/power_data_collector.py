@@ -1,15 +1,14 @@
 import asyncio
 import datetime
 import logging
-from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Union, Callable
+from contextlib import aclosing
+from typing import List, Optional
 
 from halina.email_rapport.data_collector_classes.power_point import PowerPoint
-from serverish.messenger import get_reader
 from serverish.base.datetime import dt_from_array
 
-from halina.asyncio_util_functions import wait_for_psce
 from halina.date_utils import DateUtils
+from halina.nats_stream_reader import read_all_records
 
 from configuration import GlobalConfig
 
@@ -84,29 +83,25 @@ class PowerDataCollector:
         offset_hours = GlobalConfig.get(GlobalConfig.CHARTS_UTC_OFFSET_HOURS)
         yesterday_midday = DateUtils.yesterday_midday_utc_tz() + datetime.timedelta(hours=offset_hours)
         today_midday = DateUtils.today_midday_utc_tz() + datetime.timedelta(hours=offset_hours)
-        reader = get_reader(
-            self._nats_subject, deliver_policy='by_start_time', opt_start_time=yesterday_midday, nowait=True
-        )
         try:
-            async for data, meta in reader:
+            async with aclosing(read_all_records(self._nats_subject, start_time=yesterday_midday)) as records:
+                async for data, meta in records:
+                    if not await self._validate_record(data=data):
+                        logger.debug(f"Record from {self._nats_subject} is malformed")
+                        self._malformed_record_measurements += 1
+                        continue
 
-                if not await self._validate_record(data=data):
-                    logger.debug(f"Record from {self._nats_subject} is malformed")
-                    self._malformed_record_measurements += 1
-                    continue
-
-                # check ts
-                ts = data.get("ts")
-                ts_dt = dt_from_array(t=ts)
-                if ts_dt > today_midday:
-                    break
-                await self.add_data_point(data=data)
-                await asyncio.sleep(0)
+                    # check ts
+                    ts = data.get("ts")
+                    ts_dt = dt_from_array(t=ts)
+                    if ts_dt > today_midday:
+                        break
+                    await self.add_data_point(data=data)
+                    await asyncio.sleep(0)
 
         finally:
             logger.info(f'Power data records: {len(self.data_points)}')
             self._finish_reading_measurements_stream = True
-            await reader.close()
 
     async def _validate_record(self, data: dict) -> bool:
         if not data:

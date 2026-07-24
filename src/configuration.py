@@ -1,8 +1,17 @@
+import logging
 import dataclasses
 from typing import Dict
 from dynaconf import Dynaconf
 
 from definitions import CONFIG_DIR
+
+_log = logging.getLogger(__name__.rsplit('.')[-1])
+
+_SETTINGS_FILES = [f'{CONFIG_DIR}/default_settings.toml',
+                   f'{CONFIG_DIR}/settings.toml',
+                   '/usr/local/etc/halina/settings.toml']
+for _sf in _SETTINGS_FILES:
+    _log.info(f"Loading settings from {_sf}")
 
 
 class GlobalConfig:
@@ -23,11 +32,7 @@ class GlobalConfig:
                                 f"{self.type} was expected")
 
     # Dynaconf source
-    __settings = Dynaconf(
-        settings_files=[f'{CONFIG_DIR}/default_settings.toml',
-                        f'{CONFIG_DIR}/settings.toml',
-                        '/usr/local/etc/halina/settings.toml'],
-    )
+    __settings = Dynaconf(settings_files=_SETTINGS_FILES)
 
     APP_NAME = 'halina'
 
@@ -47,6 +52,7 @@ class GlobalConfig:
     SEND_AT_MIN = "SEND_AT_MIN"
     RAPPORT_FILE_TARGET_PATH = "RAPPORT_FILE_TARGET_PATH"
     CHARTS_UTC_OFFSET_HOURS = "CHARTS_UTC_OFFSET_HOURS"
+    COLLECTION_TIMEOUT = "COLLECTION_TIMEOUT"
 
     # dict of empty values. If someone will be overridden by not None value, this value will be return instead
     # value from config
@@ -64,7 +70,8 @@ class GlobalConfig:
         SMTP_PASSWORD: __ConfigVal(str),
         CHARTS_UTC_OFFSET_HOURS: __ConfigVal(float),
         SEND_AT: __ConfigVal(int),  # at witch hour will be sent email
-        RAPPORT_FILE_TARGET_PATH: __ConfigVal(str),  # at witch hour will be sent email
+        RAPPORT_FILE_TARGET_PATH: __ConfigVal(str),
+        COLLECTION_TIMEOUT: __ConfigVal(int),  # hard deadline (seconds) for one night data collection
     }
     # __setters = [NATS_HOST, NATS_PORT, SMTP_USERNAME, TELESCOPES, EMAILS_TO, OBSERVATORY_TIMEZONE, SMTP_HOST,
     # SMTP_PORT, FROM_EMAIL, FROM_NAME, SMTP_PASSWORD, SEND_AT]

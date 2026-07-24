@@ -1,10 +1,9 @@
 import asyncio
 import logging
-from typing import Dict
+from contextlib import aclosing
 from pyaraucaria.date import datetime_to_julian
-from serverish.messenger import get_reader
-from halina.asyncio_util_functions import wait_for_psce
 from halina.date_utils import DateUtils
+from halina.nats_stream_reader import read_all_records
 
 logger = logging.getLogger(__name__.rsplit('.')[-1])
 
@@ -38,50 +37,43 @@ class HarvesterFileRapport:
         stream = self._get_download_stream()
         yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
         today_midday = DateUtils.today_local_midday_in_utc()
-        reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
         try:
-            await reader.open()
-            while True:
-                try:
-                    data, meta = await wait_for_psce(reader.read_next(), 2)
-                except asyncio.TimeoutError:
-                    logger.info(f"Stop waiting for new date in stream - stream is empty. {stream}")
-                    break
-                logger.debug(f"Data was read from stream {stream}")
+            async with aclosing(read_all_records(stream, start_time=yesterday_midday)) as records:
+                async for data, meta in records:
+                    logger.debug(f"Data was read from stream {stream}")
 
-                if not HarvesterFileRapport._validate_download(data=data, stream=stream):
-                    logger.info("Malformed download")
-                    self._count_malformed_fits(HarvesterFileRapport._STR_NAME_DOWNLOAD)
-                    continue
+                    if not HarvesterFileRapport._validate_download(data=data, stream=stream):
+                        logger.info("Malformed download")
+                        self._count_malformed_fits(HarvesterFileRapport._STR_NAME_DOWNLOAD)
+                        continue
 
-                fits_id = data.get("fits_id")
-                param = data.get("param")
-                obs = param.get("date_obs")
-                try:
-                    jd = datetime_to_julian(obs)
-                except (ValueError, TypeError):
-                    logger.info(f"The read record from stream {stream} has wrong format: JD")
-                    self._count_malformed_fits(HarvesterFileRapport._STR_NAME_DOWNLOAD)
-                    continue
-                jd_today_midday = datetime_to_julian(today_midday)
-                # if the difference between the beginning of the observation and the date of observation is greater
-                # than 1, it means that the day has passed and there is another night
-                if (jd_today_midday - jd) >= 1:
-                    break
-                # --------------------------------------------------------------
-                download = data
-                if download is not None:
-                    self.downloaded_files += 1
-                    # 'error_key' is only just for case because stream is evaluate earlier
-                    typ = self._map_img_typ_to_typ_name(download.get('param', {}).get('image_type', ''))
-                    if typ != 'snap' and typ != 'focus':
-                        filename = download.get('param', {}).get('raw_file_name', 'error_key')
-                        self.fits_existing_files['night_log']['raw'][filename] = 1
-                        logger.debug(f'Read downloaded fits file name; {filename}')
-                await asyncio.sleep(0)
+                    fits_id = data.get("fits_id")
+                    param = data.get("param")
+                    obs = param.get("date_obs")
+                    try:
+                        jd = datetime_to_julian(obs)
+                    except (ValueError, TypeError):
+                        logger.info(f"The read record from stream {stream} has wrong format: JD")
+                        self._count_malformed_fits(HarvesterFileRapport._STR_NAME_DOWNLOAD)
+                        continue
+                    jd_today_midday = datetime_to_julian(today_midday)
+                    # if the difference between the beginning of the observation and the date of observation is
+                    # greater than 1, it means that the day has passed and there is another night
+                    if (jd_today_midday - jd) >= 1:
+                        break
+                    # --------------------------------------------------------------
+                    download = data
+                    if download is not None:
+                        self.downloaded_files += 1
+                        # 'error_key' is only just for case because stream is evaluate earlier
+                        typ = self._map_img_typ_to_typ_name(download.get('param', {}).get('image_type', ''))
+                        if typ != 'snap' and typ != 'focus':
+                            filename = download.get('param', {}).get('raw_file_name', 'error_key')
+                            self.fits_existing_files['night_log']['raw'][filename] = 1
+                            logger.debug(f'Read downloaded fits file name; {filename}')
+                    await asyncio.sleep(0)
         finally:
             self._finish_reading_streams += 1
-            await reader.close()
 
     @staticmethod
     def _validate_download(data: dict, stream: str) -> bool:

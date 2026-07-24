@@ -1,14 +1,15 @@
 import asyncio
 import datetime
 import logging
+from contextlib import aclosing
 from typing import Dict, Optional, List
 
 from pyaraucaria.date import datetime_to_julian, get_jd_from_oca_jd, julian_to_iso
 from serverish.base import MessengerReaderStopped, dt_from_array
-from serverish.messenger import get_reader, single_read
+from serverish.messenger import single_read
 
-from halina.asyncio_util_functions import wait_for_psce
 from halina.date_utils import DateUtils
+from halina.nats_stream_reader import read_all_records
 from halina.email_rapport.data_collector_classes.data_type_fits import DataTypeFits
 from halina.email_rapport.data_collector_classes.data_object import DataObject
 from halina.email_rapport.data_collector_classes.fwhm_point import FwhmPoint
@@ -105,47 +106,39 @@ class TelescopeDtaCollector:
         stream = self._get_download_stream()
         yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
         today_midday = DateUtils.today_local_midday_in_utc()
-        reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
         try:
-            await reader.open()
-            while True:
-                try:
-                    data, meta = await wait_for_psce(reader.read_next(), 2)
-                except asyncio.TimeoutError:
-                    logger.info(f"Stop waiting for new date in stream - stream is empty. {stream}")
-                    break
+            async with aclosing(read_all_records(stream, start_time=yesterday_midday)) as records:
+                async for data, meta in records:
+                    if not TelescopeDtaCollector._validate_download(data=data, stream=stream):
+                        logger.info("Malformed download")
+                        self._count_malformed_fits(TelescopeDtaCollector._STR_NAME_DOWNLOAD)
+                        continue
 
-                if not TelescopeDtaCollector._validate_download(data=data, stream=stream):
-                    logger.info("Malformed download")
-                    self._count_malformed_fits(TelescopeDtaCollector._STR_NAME_DOWNLOAD)
-                    continue
-
-                fits_id = data.get("fits_id")
-                param = data.get("param")
-                obs = param.get("date_obs")
-                try:
-                    jd = datetime_to_julian(obs)
-                except (ValueError, TypeError):
-                    logger.info(f"The read record from stream {stream} has wrong format: JD")
-                    self._count_malformed_fits(TelescopeDtaCollector._STR_NAME_DOWNLOAD)
-                    continue
-                jd_today_midday = datetime_to_julian(today_midday)
-                # if the difference between the beginning of the observation and the date of observation is greater
-                # than 1, it means that the day has passed and there is another night
-                if (jd_today_midday - jd) >= 1:
-                    break
-                async with self._fp_condition:
-                    if self._fits_pair.get(fits_id, None) is None:
-                        self._fits_pair[fits_id] = {}
-                    self._fits_pair[fits_id]["download"] = data
-                    self._unchecked_ids.add(fits_id)
-                    self._fp_condition.notify_all()
-                await asyncio.sleep(0)
+                    fits_id = data.get("fits_id")
+                    param = data.get("param")
+                    obs = param.get("date_obs")
+                    try:
+                        jd = datetime_to_julian(obs)
+                    except (ValueError, TypeError):
+                        logger.info(f"The read record from stream {stream} has wrong format: JD")
+                        self._count_malformed_fits(TelescopeDtaCollector._STR_NAME_DOWNLOAD)
+                        continue
+                    jd_today_midday = datetime_to_julian(today_midday)
+                    # if the difference between the beginning of the observation and the date of observation is
+                    # greater than 1, it means that the day has passed and there is another night
+                    if (jd_today_midday - jd) >= 1:
+                        break
+                    async with self._fp_condition:
+                        if self._fits_pair.get(fits_id, None) is None:
+                            self._fits_pair[fits_id] = {}
+                        self._fits_pair[fits_id]["download"] = data
+                        self._unchecked_ids.add(fits_id)
+                        self._fp_condition.notify_all()
+                    await asyncio.sleep(0)
         finally:
             self._finish_reading_streams += 1
             async with self._fp_condition:
                 self._fp_condition.notify_all()
-            await reader.close()
 
     @staticmethod
     def _validate_download(data: dict, stream: str) -> bool:
@@ -176,187 +169,141 @@ class TelescopeDtaCollector:
         stream = self._get_faststat_stream()
         yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
         today_midday = DateUtils.today_local_midday_in_utc()
-        reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
         try:
-            await reader.open()
-            while True:
-                try:
-                    data, meta = await wait_for_psce(reader.read_next(), 2)
-                except asyncio.TimeoutError:
-                    logger.info(f"Stop waiting for new date in stream - stream is empty. {stream}")
-                    break
-
-                try:
-                    fwhm: float = (data['raw']['fwhm']['fwhm_x'] + data['raw']['fwhm']['fwhm_y']) / 2
-                    date_obs: str = data['raw']['header']['DATE-OBS']
-                    jd: float = data['raw']['header']['JD']
-                    scale: float = data['raw']['header']['SCALE']
-                    image_typ: str = data['raw']['header']['IMAGETYP']
-                except (ValueError, TypeError, LookupError):
-                    continue
-                if not image_typ == 'science':
-                    continue
-                jd_today_midday = datetime_to_julian(today_midday)
-                # if the difference between the beginning of the observation and the date of observation is greater
-                # than 1, it means that the day has passed and there is another night
-                if (jd_today_midday - jd) >= 1:
-                    break
-                try:
-                    self.fwhm_data.append(FwhmPoint(
-                        date=datetime.datetime.fromisoformat(date_obs), fwhm=fwhm, scale=scale
-                    ))
-                except (ValueError, TypeError):
-                    continue
+            async with aclosing(read_all_records(stream, start_time=yesterday_midday)) as records:
+                async for data, meta in records:
+                    try:
+                        fwhm: float = (data['raw']['fwhm']['fwhm_x'] + data['raw']['fwhm']['fwhm_y']) / 2
+                        date_obs: str = data['raw']['header']['DATE-OBS']
+                        jd: float = data['raw']['header']['JD']
+                        scale: float = data['raw']['header']['SCALE']
+                        image_typ: str = data['raw']['header']['IMAGETYP']
+                    except (ValueError, TypeError, LookupError):
+                        continue
+                    if not image_typ == 'science':
+                        continue
+                    jd_today_midday = datetime_to_julian(today_midday)
+                    # if the difference between the beginning of the observation and the date of observation is
+                    # greater than 1, it means that the day has passed and there is another night
+                    if (jd_today_midday - jd) >= 1:
+                        break
+                    try:
+                        self.fwhm_data.append(FwhmPoint(
+                            date=datetime.datetime.fromisoformat(date_obs), fwhm=fwhm, scale=scale
+                        ))
+                    except (ValueError, TypeError):
+                        continue
         finally:
             self._finish_reading_streams += 1
             async with self._fp_condition:
                 self._fp_condition.notify_all()
-            await reader.close()
 
     async def _read_data_from_zero_monitor(self):
 
         stream = self._get_zero_monitor_stream()
         yesterday_midday = DateUtils.yesterday_local_midday_in_utc().replace(tzinfo=datetime.timezone.utc)
-        today_midday = DateUtils.today_local_midday_in_utc().replace(tzinfo=datetime.timezone.utc)
         logger.info(f'Get zero monitor data for {self._telescope_name} start from {yesterday_midday}')
-        reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
-
         try:
-            await reader.open()
-            while True:
-                try:
-                    data, meta = await wait_for_psce(reader.read_next(), 2)
-                except asyncio.TimeoutError:
-                    logger.info(f"Stop waiting for new date in stream - stream is empty. {stream}")
-                    break
-                try:
-                    jd: float = get_jd_from_oca_jd(oca_jd=data['oca_jd'])
-                    zero_point: float = data['zero_value']
-                    filter_: str = data['filter']
-                    date_obs = julian_to_iso(jd)
-                except (ValueError, TypeError, LookupError):
-                    continue
-                # if not image_typ == 'science':
-                #     continue
-                # jd_today_midday = datetime_to_julian(today_midday)
-                # # if the difference between the beginning of the observation and the date of observation is greater
-                # # than 1, it means that the day has passed and there is another night
-                # if (jd_today_midday - jd) >= 1:
-                #     logger.info(f"Data read brake jd_today_midday {jd_today_midday} - jd {jd}")
-                #     break
-                obs_dt = datetime.datetime.fromisoformat(date_obs).astimezone(tz=datetime.timezone.utc)
-                if obs_dt < yesterday_midday:
-                    continue
-                try:
-                    self.phot_zero_data.append(PhotZeroPoint(
-                        date=obs_dt,
-                        zero_point=zero_point, filter_=filter_
-                    ))
-                except (ValueError, TypeError):
-                    continue
+            async with aclosing(read_all_records(stream, start_time=yesterday_midday)) as records:
+                async for data, meta in records:
+                    try:
+                        jd: float = get_jd_from_oca_jd(oca_jd=data['oca_jd'])
+                        zero_point: float = data['zero_value']
+                        filter_: str = data['filter']
+                        date_obs = julian_to_iso(jd)
+                    except (ValueError, TypeError, LookupError):
+                        continue
+                    obs_dt = datetime.datetime.fromisoformat(date_obs).astimezone(tz=datetime.timezone.utc)
+                    if obs_dt < yesterday_midday:
+                        continue
+                    try:
+                        self.phot_zero_data.append(PhotZeroPoint(
+                            date=obs_dt,
+                            zero_point=zero_point, filter_=filter_
+                        ))
+                    except (ValueError, TypeError):
+                        continue
         finally:
             self._finish_reading_streams += 1
             async with self._fp_condition:
                 self._fp_condition.notify_all()
-            await reader.close()
             logger.info(f'Zero monitor data for {self._telescope_name} has records no.: {len(self.phot_zero_data)}')
 
     async def _read_data_from_quality_log(self):
 
         stream = self._get_quality_log_stream()
         yesterday_midday = DateUtils.yesterday_local_midday_in_utc().replace(tzinfo=datetime.timezone.utc)
-        today_midday = DateUtils.today_local_midday_in_utc().replace(tzinfo=datetime.timezone.utc)
         logger.info(f'Get quality log data for {self._telescope_name} start from {yesterday_midday}')
-        reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
-
         try:
-            await reader.open()
-            while True:
-                try:
-                    data, meta = await wait_for_psce(reader.read_next(), 2)
-                except asyncio.TimeoutError:
-                    logger.info(f"Stop waiting for new date in stream - stream is empty. {stream}")
-                    break
-                try:
-                    date: datetime.datetime = dt_from_array(data['timestamp'])
-                    message: str = data['message']
-                    level: int = data['level']
-                except (ValueError, TypeError, LookupError):
-                    continue
-                obs_dt = date.astimezone(tz=datetime.timezone.utc)
-                if obs_dt < yesterday_midday:
-                    continue
-                try:
-                    self.quality_log_data.append(QualityLogMsg(
-                        date=date,
-                        message=message,
-                        level=level
-                    ))
-                except (ValueError, TypeError):
-                    continue
+            async with aclosing(read_all_records(stream, start_time=yesterday_midday)) as records:
+                async for data, meta in records:
+                    try:
+                        date: datetime.datetime = dt_from_array(data['timestamp'])
+                        message: str = data['message']
+                        level: int = data['level']
+                    except (ValueError, TypeError, LookupError):
+                        continue
+                    obs_dt = date.astimezone(tz=datetime.timezone.utc)
+                    if obs_dt < yesterday_midday:
+                        continue
+                    try:
+                        self.quality_log_data.append(QualityLogMsg(
+                            date=date,
+                            message=message,
+                            level=level
+                        ))
+                    except (ValueError, TypeError):
+                        continue
         finally:
             self._finish_reading_streams += 1
             async with self._fp_condition:
                 self._fp_condition.notify_all()
-            await reader.close()
             logger.info(f'Quality log data for {self._telescope_name} has records no.: {len(self.quality_log_data)}')
 
     async def _read_data_from_stream(self, stream: str, main_key: str):
         yesterday_midday = DateUtils.yesterday_local_midday_in_utc()
         today_midday = DateUtils.today_local_midday_in_utc()
-        reader = get_reader(stream, deliver_policy='by_start_time', opt_start_time=yesterday_midday)
         try:
-            await reader.open()
-            while True:
-                # todo jeśłi przez ikreślony czas nie odczytamy wiadomości uznajemy że stream jest pusty.
-                #  Takim rozwiązaniem nie możemy ponawiać prób czytania ze streama gdy będą problemy z połączeniem.
-                #  Trzeba by edytować serverish jeśłi będzie potrzebny tutaj taki mechanizm.
-                try:
-                    # we wait for data from the stream for x seconds, if it returns nothing, We recognize
-                    # that the stream is empty
-                    data, meta = await wait_for_psce(reader.read_next(), 2)
-                except asyncio.TimeoutError:
-                    logger.info(f"Stop waiting for new date in stream - stream is empty. {stream}")
-                    break
-                logger.debug(f"Data was read from stream {stream}")
-                # validate data
-                if not TelescopeDtaCollector._validate_record(data=data, stream=stream, main_key=main_key):
-                    self._count_malformed_fits(main_key)
-                    continue
-                fits_id = data.get("fits_id")
-                content = data.get(main_key)
-                header = content.get("header")
-                try:
-                    date_obs = header["DATE-OBS"]
-                    ratio_no_bkg_1 = content["stars_presence"]["ratio_no_bkg"]["1"]
-                    self.quality_qmap_data.append(QualityQmapPoint(
-                        date=datetime.datetime.fromisoformat(date_obs), ratio_no_bkg_1=ratio_no_bkg_1
-                    ))
-                except (LookupError, ValueError, TypeError):
-                    pass
-                try:
-                    jd = float(header.get("JD"))
-                except (ValueError, TypeError):
-                    logger.info(f"The read record from stream {stream} has wrong format: JD")
-                    self._count_malformed_fits(main_key)
-                    continue
-                jd_today_midday = datetime_to_julian(today_midday)
-                # if the difference between the beginning of the observation and the date of observation is greater
-                # than 1, it means that the day has passed and there is another night
-                if (jd_today_midday - jd) >= 1:
-                    break
-                async with self._fp_condition:
-                    if self._fits_pair.get(fits_id, None) is None:
-                        self._fits_pair[fits_id] = {}
-                    self._fits_pair[fits_id][main_key] = content
-                    self._unchecked_ids.add(fits_id)
-                    self._fp_condition.notify_all()
-                await asyncio.sleep(0)
+            async with aclosing(read_all_records(stream, start_time=yesterday_midday)) as records:
+                async for data, meta in records:
+                    logger.debug(f"Data was read from stream {stream}")
+                    # validate data
+                    if not TelescopeDtaCollector._validate_record(data=data, stream=stream, main_key=main_key):
+                        self._count_malformed_fits(main_key)
+                        continue
+                    fits_id = data.get("fits_id")
+                    content = data.get(main_key)
+                    header = content.get("header")
+                    try:
+                        date_obs = header["DATE-OBS"]
+                        ratio_no_bkg_1 = content["stars_presence"]["ratio_no_bkg"]["1"]
+                        self.quality_qmap_data.append(QualityQmapPoint(
+                            date=datetime.datetime.fromisoformat(date_obs), ratio_no_bkg_1=ratio_no_bkg_1
+                        ))
+                    except (LookupError, ValueError, TypeError):
+                        pass
+                    try:
+                        jd = float(header.get("JD"))
+                    except (ValueError, TypeError):
+                        logger.info(f"The read record from stream {stream} has wrong format: JD")
+                        self._count_malformed_fits(main_key)
+                        continue
+                    jd_today_midday = datetime_to_julian(today_midday)
+                    # if the difference between the beginning of the observation and the date of observation is
+                    # greater than 1, it means that the day has passed and there is another night
+                    if (jd_today_midday - jd) >= 1:
+                        break
+                    async with self._fp_condition:
+                        if self._fits_pair.get(fits_id, None) is None:
+                            self._fits_pair[fits_id] = {}
+                        self._fits_pair[fits_id][main_key] = content
+                        self._unchecked_ids.add(fits_id)
+                        self._fp_condition.notify_all()
+                    await asyncio.sleep(0)
         finally:
             self._finish_reading_streams += 1
             async with self._fp_condition:
                 self._fp_condition.notify_all()
-            await reader.close()
 
     @staticmethod
     def _validate_record(data: dict, stream: str, main_key: str) -> bool:
