@@ -44,6 +44,7 @@ def read_configuration(**kwargs):
     set_single_setting(GlobalConfig.FROM_EMAIL, kwargs)
     set_single_setting(GlobalConfig.EMAILS_TO, kwargs, False)
     set_single_setting(GlobalConfig.SEND_AT, kwargs, False)
+    set_single_setting(GlobalConfig.COLLECTION_TIMEOUT, kwargs, False)
 
 
 async def main_coroutine():

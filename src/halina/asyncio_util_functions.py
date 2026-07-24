@@ -1,5 +1,9 @@
 import asyncio
+import logging
 from contextlib import suppress
+from typing import Awaitable, Iterable
+
+logger = logging.getLogger(__name__.rsplit('.')[-1])
 
 
 async def wait_for_psce(fut, timeout):
@@ -22,4 +26,33 @@ async def wait_for_psce(fut, timeout):
         with suppress(asyncio.CancelledError):
             await task
         raise
+
+
+async def gather_with_hard_deadline(coros: Iterable[Awaitable], timeout: float,
+                                    grace: float = 30.0, what: str = "tasks") -> bool:
+    """Run coroutines concurrently like `asyncio.gather(return_exceptions=True)`,
+    but guarantee to return within roughly `timeout` + `grace` seconds.
+
+    Unlike `asyncio.wait_for`, this never awaits a cancelled task indefinitely: after
+    `timeout` the tasks are cancelled and given `grace` seconds to finish; whatever still
+    runs afterwards is abandoned with an ERROR log instead of blocking the caller forever.
+    A lost cancellation hung the email rapport service for days (issue #43) — this is the
+    safety belt against any such hang in the future.
+
+    :param coros: coroutines to run concurrently
+    :param timeout: seconds after which the coroutines are cancelled
+    :param grace: seconds to wait for the cancelled coroutines to finish
+    :param what: label used in log messages
+    :return: True if all coroutines completed within `timeout`, False otherwise
+    """
+    task = asyncio.ensure_future(asyncio.gather(*coros, return_exceptions=True))
+    _, pending = await asyncio.wait({task}, timeout=timeout)
+    if not pending:
+        return True
+    logger.error(f"{what} did not finish within {timeout}s — cancelling")
+    task.cancel()
+    _, still_pending = await asyncio.wait({task}, timeout=grace)
+    if still_pending:
+        logger.error(f"{what} ignored cancellation for {grace}s — abandoning still-running tasks")
+    return False
 

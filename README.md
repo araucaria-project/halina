@@ -67,6 +67,9 @@ This should take into account local timezone so if we want sent emails 2 hour af
 - `SEND_AT_MIN`: Number of minutes after hour from param `SEND_AT`. If `SEND_AT_MIN` will be set e.g. `25` them process collecting data will start 25 min after hour from `SEND_AT`
 - `OBSERVATORY_TIMEZONE`: Observatory local timezone as int number, e.g. `-4` . It is important. 
 This will be gotten to count range of night from 12am to 12am next day
+- `COLLECTION_TIMEOUT`: Hard deadline in seconds for collecting one night of data from NATS (default `600`). 
+If the deadline is exceeded, collection is cancelled, an ERROR is logged and the report is still produced 
+from the data collected so far (marked `[INCOMPLETE DATA]` in the email subject).
 
 Example `settings.toml` file:
 

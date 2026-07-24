@@ -7,6 +7,7 @@ from typing import Dict, List, Union, Optional
 from astropy.coordinates import get_moon
 
 from configuration import GlobalConfig
+from halina.asyncio_util_functions import gather_with_hard_deadline
 from halina.date_utils import DateUtils
 from halina.email_rapport.data_collector_classes.fwhm_point import FwhmPoint
 from halina.email_rapport.data_collector_classes.quality_qmap_point import QualityQmapPoint
@@ -30,6 +31,8 @@ class EmailRapportService(ServiceNatsDependent):
     # time to retry sending email on night. After this night will be skipped.
     # for now is only waiting to connection to NATS
     _SKIPPING_TIME = 1800  # 30 min
+    # default hard deadline for collecting one night of data, overridable by COLLECTION_TIMEOUT setting
+    _DEFAULT_COLLECTION_TIMEOUT = 600  # 10 min
 
     def __init__(self, utc_offset: int = 0, **kwargs):
         super().__init__(**kwargs)
@@ -37,6 +40,8 @@ class EmailRapportService(ServiceNatsDependent):
         self._telescopes: List[str] = GlobalConfig.get(GlobalConfig.TELESCOPES)
         self._send_at_time = datetime.time(GlobalConfig.get(GlobalConfig.SEND_AT),
                                            GlobalConfig.get(GlobalConfig.SEND_AT_MIN))
+        self._collection_timeout: int = GlobalConfig.get(GlobalConfig.COLLECTION_TIMEOUT,
+                                                         EmailRapportService._DEFAULT_COLLECTION_TIMEOUT)
 
     @staticmethod
     def _get_moon_phase(lat: float, lon: float, elev: float) -> str:
@@ -87,6 +92,10 @@ class EmailRapportService(ServiceNatsDependent):
                                 f"Proces takes {working_time_minutes}")
                 except SendEmailException as e:
                     logger.error(f"Email sender service cath error: {e}")
+                except Exception:
+                    # the daily loop must never die silently — log loudly and try again next day
+                    logger.exception(f"Email rapport run for {now.date()} failed unexpectedly — "
+                                     f"no email was sent, next run stays scheduled")
 
                 send_at_time = send_at_time + datetime.timedelta(days=1)
 
@@ -121,7 +130,13 @@ class EmailRapportService(ServiceNatsDependent):
         coro = [i.collect_data() for i in telescopes.values()]
         coro.append(weather_data_coll.collect_data())
         coro.append(power_data_coll.collect_data())
-        await asyncio.gather(*coro, return_exceptions=True)
+        # hard deadline: a single stuck reader must not block the report (and every following
+        # night) forever — on timeout we still send an email built from the partial data
+        completed = await gather_with_hard_deadline(coro, timeout=self._collection_timeout,
+                                                    what="Night data collection")
+        if not completed:
+            logger.error(f"Night data collection did not finish within {self._collection_timeout}s — "
+                         f"the email rapport will be sent from incomplete data")
 
         logger.info(f"Scanning stream for fits completed.")
         for name, i in telescopes.items():
@@ -176,8 +191,9 @@ class EmailRapportService(ServiceNatsDependent):
         chart_builder.set_data_power(power_data_coll.data_points)
         await chart_builder.build()
 
+        subject = f"Night Report - {night}" if completed else f"Night Report - {night} [INCOMPLETE DATA]"
         email_builder = (EmailBuilder()
-                         .subject(f"Night Report - {night}")
+                         .subject(subject)
                          .night(night)
                          .oca_jd(self._get_oca_jd())
                          .moon_phase(_moon_phase)
