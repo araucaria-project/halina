@@ -354,33 +354,21 @@ class TelescopeDtaCollector:
                  self._read_data_from_quality_log(),
                  self._read_data_from_stream(self._get_raw_stream(), TelescopeDtaCollector._STR_NAME_RAW),
                  self._read_data_from_stream(self._get_zdf_stream(), TelescopeDtaCollector._STR_NAME_ZDF),
-                 self._evaluate_data(),
-                 self._read_tel_info()]
+                 self._read_tel_info()
+                 ]
         await asyncio.gather(*coros, return_exceptions=True)
+        await self._evaluate_data()
         logger.info(f"Finished reading data from streams. Read {self.count_fits} record")
 
     async def _evaluate_data(self):
-        async with self._fp_condition:
-            while self._finish_reading_streams < TelescopeDtaCollector._NUMBER_STREAMS:
-                await self._fp_condition.wait()
-                # checking only last added ids - making program faster
-                unchecked_ids = self._unchecked_ids
-                self._unchecked_ids = set()  # reset ids
-                for id_ in unchecked_ids:
-                    pair = self._fits_pair.get(id_)  # pair is always !=Null
-                    logger.debug(f"Evaluating pair for id: {id_}")
-
-                    # if dict has _NUMBER_STREAMS key that mean we have all data to process
-                    if len(pair) == TelescopeDtaCollector._NUMBER_STREAMS:
-                        self._fits_pair.pop(id_)  # remove key
-                        logger.debug(f"Processing pair for id: {id_}")
-                        await self._process_pair(pair)
-            # process not completed fits pair (pair = raw + zdf)
-            for id_, pair in self._fits_pair.items():
-                logger.debug(f"Processing remaining pair for id: {id_}")
-                await self._process_pair(pair)
-            self._fits_pair = {}  # clear pairs
-            logger.info(f"Final _fits_pair: {self._fits_pair}")
+        # all reader coroutines have already finished (called after asyncio.gather in
+        # collect_data), so _fits_pair is fully populated here and no longer mutated
+        # concurrently - no need to wait/notify on _fp_condition anymore.
+        for id_, pair in self._fits_pair.items():
+            logger.debug(f"Processing pair for id: {id_}")
+            await self._process_pair(pair)
+        self._fits_pair = {}  # clear pairs
+        logger.info(f"Final _fits_pair: {self._fits_pair}")
 
     async def _process_pair(self, pair: dict):
         """
