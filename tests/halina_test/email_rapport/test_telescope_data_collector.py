@@ -1,7 +1,6 @@
 import os
 import unittest
 from unittest.mock import patch, AsyncMock
-import asyncio
 from halina.email_rapport.telescope_data_collector import TelescopeDtaCollector
 import json
 import copy
@@ -121,18 +120,10 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
             "id1": {"raw": "data_raw", "zdf": "data_zdf", "download": "data_download"},
             "id2": {"raw": "data_raw"}
         }
-        self.collector._unchecked_ids = {"id1", "id2"}
-        self.collector._finish_reading_streams = 1  # Mniej niż _NUMBER_STREAMS
 
-        task = asyncio.create_task(self.collector._evaluate_data())
-        await asyncio.sleep(0.1)
-
-        # Symulacja zakończenia wszystkich strumieni
-        self.collector._finish_reading_streams = 3
-        async with self.collector._fp_condition:
-            self.collector._fp_condition.notify_all()
-
-        await task
+        # _evaluate_data is only called after all reader coroutines already finished
+        # (see collect_data), so it just processes whatever ended up in _fits_pair.
+        await self.collector._evaluate_data()
 
         # Upewnienie się że odpowiednie pary zostały przetworzone
         expected_calls = [
@@ -141,8 +132,8 @@ class TestTelescopeDataCollector(unittest.IsolatedAsyncioTestCase):
         ]
         mock_process_pair.assert_has_awaits(expected_calls, any_order=True)
 
-        # Upewnij się, że _unchecked_ids jest zresetowane, a pozostałe pary zostały przetworzone
-        self.assertEqual(self.collector._unchecked_ids, set())
+        # Upewnij się, że pary zostały wyczyszczone po przetworzeniu
+        self.assertEqual(self.collector._fits_pair, {})
         self.assertEqual(mock_process_pair.await_count, 2)
 
 
